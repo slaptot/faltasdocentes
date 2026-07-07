@@ -151,16 +151,17 @@ function replaceTablaMarker_(body, solicitud) {
  */
 function buildAusenciasTableRows_(solicitud) {
   const ausencias = extractAusenciasFromObservaciones_(solicitud.Observaciones);
-  const headers = ['Fecha'].concat(AUSENCIA_TRAMOS);
+  const headers = ['Fecha', 'Dia entero', 'Hora salida', 'Hora vuelta'];
   const rows = ausencias.map(function(ausencia) {
-    return [formatDateForPdf_(ausencia.fecha)].concat(AUSENCIA_TRAMOS.map(function(tramo) {
-      return ausencia.tramos[tramo] || '-';
-    }));
+    return [
+      formatDateForPdf_(ausencia.fecha),
+      ausencia.diaEntero ? 'Si' : 'No',
+      ausencia.diaEntero ? '-' : ausencia.horaSalida,
+      ausencia.diaEntero ? '-' : ausencia.horaVuelta
+    ];
   });
 
-  return [headers].concat(rows.length ? rows : [['-'].concat(AUSENCIA_TRAMOS.map(function() {
-    return '-';
-  }))]);
+  return [headers].concat(rows.length ? rows : [['-', '-', '-', '-']]);
 }
 
 /**

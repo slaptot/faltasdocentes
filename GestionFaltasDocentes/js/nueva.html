@@ -3,7 +3,6 @@
    * Cliente del modulo Nueva solicitud.
    */
   (function() {
-    const tramos = ['1', '2', 'R1', '3', '4', 'R2', '5', '6'];
     const state = {
       loaded: false,
       motivos: []
@@ -69,12 +68,15 @@
       const row = document.createElement('tr');
       row.innerHTML = [
         '<td><input class="form-control form-control-sm ausencia-fecha" type="date" required></td>',
-        tramos.map(function(tramo) {
-          return '<td>' + buildTramoSelect(tramo) + '</td>';
-        }).join(''),
+        '<td class="text-center"><input class="form-check-input ausencia-dia-entero" type="checkbox" aria-label="Dia entero"></td>',
+        '<td><input class="form-control form-control-sm ausencia-salida" type="time"></td>',
+        '<td><input class="form-control form-control-sm ausencia-vuelta" type="time"></td>',
         '<td><button class="btn btn-outline-danger btn-sm" type="button" title="Eliminar dia"><i class="bi bi-trash"></i></button></td>'
       ].join('');
 
+      row.querySelector('.ausencia-dia-entero').addEventListener('change', function(event) {
+        toggleHoraInputs(row, event.target.checked);
+      });
       row.querySelector('button').addEventListener('click', function() {
         if (elements.ausenciasBody.children.length > 1) {
           row.remove();
@@ -85,19 +87,20 @@
     }
 
     /**
-     * Construye el desplegable de un tramo.
+     * Activa o desactiva horas cuando se marca dia entero.
      *
-     * @param {string} tramo Tramo horario.
-     * @return {string} HTML del select.
+     * @param {HTMLTableRowElement} row Fila de ausencia.
+     * @param {boolean} diaEntero True si es dia entero.
      */
-    function buildTramoSelect(tramo) {
-      return [
-        '<select class="form-select form-select-sm ausencia-tramo" data-tramo="' + tramo + '">',
-        '<option value="-">-</option>',
-        '<option value="L">L</option>',
-        '<option value="C">C</option>',
-        '</select>'
-      ].join('');
+    function toggleHoraInputs(row, diaEntero) {
+      ['.ausencia-salida', '.ausencia-vuelta'].forEach(function(selector) {
+        const input = row.querySelector(selector);
+        input.disabled = diaEntero;
+
+        if (diaEntero) {
+          input.value = '';
+        }
+      });
     }
 
     /**
@@ -168,14 +171,13 @@
       }
 
       const ausencias = Array.from(elements.ausenciasBody.querySelectorAll('tr')).map(function(row) {
-        const tramosData = {};
-        row.querySelectorAll('.ausencia-tramo').forEach(function(select) {
-          tramosData[select.dataset.tramo] = select.value;
-        });
+        const diaEntero = row.querySelector('.ausencia-dia-entero').checked;
 
         return {
           fecha: row.querySelector('.ausencia-fecha').value,
-          tramos: tramosData
+          diaEntero: diaEntero,
+          horaSalida: diaEntero ? '' : row.querySelector('.ausencia-salida').value,
+          horaVuelta: diaEntero ? '' : row.querySelector('.ausencia-vuelta').value
         };
       });
 

@@ -169,12 +169,8 @@ function validateSolicitudPayload_(payload) {
   }
 
   normalizedAusencias.forEach(function(ausencia) {
-    const hasTramo = AUSENCIA_TRAMOS.some(function(tramo) {
-      return ausencia.tramos[tramo] !== '-';
-    });
-
-    if (!hasTramo) {
-      throw new Error('Cada dia de ausencia debe tener al menos un tramo marcado.');
+    if (!ausencia.diaEntero && (!ausencia.horaSalida || !ausencia.horaVuelta)) {
+      throw new Error('Indique hora de salida y hora de vuelta, o marque dia entero.');
     }
   });
 
@@ -200,15 +196,31 @@ const AUSENCIA_VALORES = Object.freeze(['-', 'L', 'C']);
 function normalizeAusencia_(ausencia) {
   const data = ausencia || {};
   const tramos = data.tramos || {};
+  const diaEntero = data.diaEntero === true || normalizeText(data.diaEntero).toLowerCase() === 'true';
 
   return {
     fecha: normalizeText(data.fecha),
+    diaEntero: diaEntero,
+    horaSalida: normalizeTime_(data.horaSalida),
+    horaVuelta: normalizeTime_(data.horaVuelta),
     tramos: AUSENCIA_TRAMOS.reduce(function(result, tramo) {
       const value = normalizeText(tramos[tramo]) || '-';
       result[tramo] = AUSENCIA_VALORES.indexOf(value) === -1 ? '-' : value;
       return result;
     }, {})
   };
+}
+
+/**
+ * Normaliza una hora HTML time HH:mm.
+ *
+ * @param {*} value Valor de hora.
+ * @return {string} Hora normalizada o cadena vacia.
+ * @private
+ */
+function normalizeTime_(value) {
+  const time = normalizeText(value);
+  return /^\d{2}:\d{2}$/.test(time) ? time : '';
 }
 
 /**
