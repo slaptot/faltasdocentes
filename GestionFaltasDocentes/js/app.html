@@ -27,9 +27,13 @@
       elements.adminView = document.getElementById('view-admin');
       elements.logoutButton = document.getElementById('logout-button');
       elements.loginAgainButton = document.getElementById('login-again-button');
+      elements.themeToggleButton = document.getElementById('theme-toggle-button');
+      elements.themeToggleIcon = document.getElementById('theme-toggle-icon');
 
+      initTheme();
       elements.logoutButton.addEventListener('click', logout);
       elements.loginAgainButton.addEventListener('click', reloadApp);
+      elements.themeToggleButton.addEventListener('click', toggleTheme);
 
       google.script.run
         .withSuccessHandler(renderAuthState)
@@ -183,6 +187,36 @@
      */
     function reloadApp() {
       window.top.location.reload();
+    }
+
+    /**
+     * Inicializa el tema visual desde localStorage.
+     */
+    function initTheme() {
+      applyTheme(localStorage.getItem('gestionFaltasTheme') === 'dark' ? 'dark' : 'light');
+    }
+
+    /**
+     * Alterna entre modo claro y oscuro.
+     */
+    function toggleTheme() {
+      const nextTheme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('gestionFaltasTheme', nextTheme);
+      applyTheme(nextTheme);
+    }
+
+    /**
+     * Aplica el tema indicado.
+     *
+     * @param {string} theme Tema visual.
+     */
+    function applyTheme(theme) {
+      const isDark = theme === 'dark';
+
+      document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      elements.themeToggleIcon.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars';
+      elements.themeToggleButton.setAttribute('aria-label', isDark ? 'Activar modo claro' : 'Activar modo oscuro');
+      elements.themeToggleButton.setAttribute('title', isDark ? 'Modo claro' : 'Modo oscuro');
     }
 
     window.GestionFaltasDocentes = {
