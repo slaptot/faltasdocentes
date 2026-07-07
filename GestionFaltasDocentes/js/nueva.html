@@ -202,7 +202,12 @@
      * @return {Promise<Object>} Payload listo para servidor.
      */
     function buildPayload() {
+      const docente = normalizeClientText(elements.profesor.value);
       const motivo = elements.motivoSelect.value;
+
+      if (!docente) {
+        return Promise.reject(new Error('Debe indicar el nombre completo del docente.'));
+      }
 
       if (!motivo) {
         return Promise.reject(new Error('Debe seleccionar un motivo.'));
@@ -221,6 +226,7 @@
 
       return readSelectedFile().then(function(filePayload) {
         return {
+          docente: docente,
           motivo: motivo,
           observaciones: elements.observaciones.value,
           ausencias: ausencias,

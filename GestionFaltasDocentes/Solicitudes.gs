@@ -30,7 +30,7 @@ function crearSolicitud(payload) {
     const solicitud = {
       ID: id,
       FechaSolicitud: data.fechaSolicitud,
-      Profesor: user.nombre,
+      Profesor: data.docente,
       Email: user.email,
       Departamento: user.departamento,
       Motivo: data.motivo,
@@ -282,10 +282,15 @@ function getNuevaSolicitudData() {
  */
 function validateSolicitudPayload_(payload) {
   const data = payload || {};
+  const docente = normalizeText(data.docente);
   const motivo = normalizeText(data.motivo);
   const observaciones = normalizeText(data.observaciones);
   const ausencias = Array.isArray(data.ausencias) ? data.ausencias : [];
   const motivos = listarMotivos();
+
+  if (!docente) {
+    throw new Error('Debe indicar el nombre completo del docente.');
+  }
 
   if (!motivo) {
     throw new Error('Debe seleccionar un motivo.');
@@ -313,6 +318,7 @@ function validateSolicitudPayload_(payload) {
 
   return {
     fechaSolicitud: new Date(),
+    docente: docente,
     motivo: motivo,
     observaciones: observaciones,
     ausencias: normalizedAusencias,
