@@ -131,6 +131,7 @@
       row.innerHTML = [
         '<td class="fw-semibold">' + escapeHtml(solicitud.id) + '</td>',
         '<td>' + escapeHtml(solicitud.fecha) + '</td>',
+        '<td class="small">' + formatMultiline(solicitud.horario) + '</td>',
         '<td><div>' + escapeHtml(solicitud.profesor) + '</div><div class="small text-secondary">' + escapeHtml(solicitud.email) + '</div></td>',
         '<td>' + escapeHtml(solicitud.motivo) + '</td>',
         '<td><span class="badge ' + getEstadoBadgeClass(solicitud.estado) + '">' + escapeHtml(solicitud.estado) + '</span></td>',
@@ -175,11 +176,12 @@
         return;
       }
 
-      const headers = ['ID', 'Fecha', 'Profesor', 'Email', 'Tipo', 'Estado', 'PDF'];
+      const headers = ['ID', 'Fecha', 'Horario', 'Profesor', 'Email', 'Tipo', 'Estado', 'PDF'];
       const rows = state.solicitudes.map(function(solicitud) {
         return [
           solicitud.id,
           solicitud.fecha,
+          solicitud.horario,
           solicitud.profesor,
           solicitud.email,
           solicitud.motivo,
@@ -210,6 +212,16 @@
     function csvEscape(value) {
       const text = String(value || '');
       return '"' + text.replace(/"/g, '""') + '"';
+    }
+
+    /**
+     * Convierte saltos de linea en HTML seguro.
+     *
+     * @param {string} value Texto.
+     * @return {string} HTML seguro.
+     */
+    function formatMultiline(value) {
+      return escapeHtml(value || '-').replace(/\n/g, '<br>');
     }
 
     /**

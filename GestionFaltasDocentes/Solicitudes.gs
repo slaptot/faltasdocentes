@@ -428,8 +428,30 @@ function mapSolicitudForAdminClient_(solicitud) {
   base.email = normalizeText(solicitud.Email);
   base.departamento = normalizeText(solicitud.Departamento);
   base.justificanteUrl = getDriveViewUrl(solicitud.JustificanteDriveId);
+  base.horario = formatAusenciasForAdmin_(solicitud.Observaciones);
 
   return base;
+}
+
+/**
+ * Formatea las ausencias para la tabla de administracion.
+ *
+ * @param {string} observaciones Observaciones de la solicitud.
+ * @return {string} Resumen de fechas y horario.
+ * @private
+ */
+function formatAusenciasForAdmin_(observaciones) {
+  const ausencias = extractAusenciasFromObservaciones_(observaciones);
+
+  if (!ausencias.length) {
+    return '';
+  }
+
+  return ausencias.map(function(ausencia) {
+    const fecha = formatDateForClient_(ausencia.fecha);
+    const horario = ausencia.diaEntero ? 'Dia entero' : ausencia.horaSalida + ' - ' + ausencia.horaVuelta;
+    return fecha + ': ' + horario;
+  }).join('\n');
 }
 
 /**
