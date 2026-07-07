@@ -30,6 +30,7 @@
       elements.resolutionForm = document.getElementById('admin-resolution-form');
       elements.resolutionTitle = document.getElementById('admin-resolution-title');
       elements.resolutionSummary = document.getElementById('admin-resolution-summary');
+      elements.resolutionReasonLabel = document.getElementById('admin-resolution-reason-label');
       elements.resolutionReason = document.getElementById('admin-resolution-reason');
 
       elements.form.addEventListener('submit', function(event) {
@@ -170,6 +171,10 @@
       elements.resolutionTitle.textContent = estado === 'ACEPTADA' ? 'Aceptar solicitud' : 'Rechazar solicitud';
       elements.resolutionSummary.textContent = solicitud.id + ' - ' + solicitud.profesor;
       elements.resolutionReason.value = '';
+      elements.resolutionReason.required = estado === 'RECHAZADA';
+      elements.resolutionReasonLabel.textContent = estado === 'RECHAZADA'
+        ? 'Razon del rechazo'
+        : 'Observacion interna opcional';
       bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).show();
       elements.resolutionModal.addEventListener('shown.bs.modal', function focusReason() {
         elements.resolutionModal.removeEventListener('shown.bs.modal', focusReason);
@@ -191,7 +196,7 @@
 
       const razon = elements.resolutionReason.value.trim();
 
-      if (!razon) {
+      if (state.pendingResolution.estado === 'RECHAZADA' && !razon) {
         elements.resolutionReason.reportValidity();
         return;
       }

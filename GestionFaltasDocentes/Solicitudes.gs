@@ -157,8 +157,8 @@ function cambiarEstadoSolicitud(id, estado, razon) {
     throw new Error('Estado no valido.');
   }
 
-  if ((normalizedEstado === ESTADOS_SOLICITUD.ACEPTADA || normalizedEstado === ESTADOS_SOLICITUD.RECHAZADA) && !razonResolucion) {
-    throw new Error('Debe indicar la razon de la resolucion.');
+  if (normalizedEstado === ESTADOS_SOLICITUD.RECHAZADA && !razonResolucion) {
+    throw new Error('Debe indicar la razon del rechazo.');
   }
 
   const rowIndex = findSolicitudRowIndex_(solicitudId);
