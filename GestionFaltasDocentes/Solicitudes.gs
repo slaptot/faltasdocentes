@@ -148,7 +148,17 @@ function cambiarEstadoSolicitud(id, estado) {
     .setValue(normalizedEstado);
 
   const rowValues = sheet.getRange(rowIndex, 1, 1, HEADERS.SOLICITUDES.length).getValues()[0];
-  return mapSolicitudForAdminClient_(rowToObject_(HEADERS.SOLICITUDES, rowValues));
+  const solicitud = rowToObject_(HEADERS.SOLICITUDES, rowValues);
+
+  if (normalizedEstado === ESTADOS_SOLICITUD.ACEPTADA || normalizedEstado === ESTADOS_SOLICITUD.RECHAZADA) {
+    try {
+      notificarResolucionSolicitud(solicitud);
+    } catch (error) {
+      console.error('No se ha podido notificar la resolucion de la solicitud ' + solicitudId, error);
+    }
+  }
+
+  return mapSolicitudForAdminClient_(solicitud);
 }
 
 /**

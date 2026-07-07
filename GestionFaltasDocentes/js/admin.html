@@ -3,6 +3,10 @@
    * Cliente del modulo Administracion.
    */
   (function() {
+    const state = {
+      motivosLoaded: false,
+      solicitudes: []
+    };
     const elements = {};
 
     document.addEventListener('DOMContentLoaded', initAdmin);
@@ -16,6 +20,7 @@
       elements.profesor = document.getElementById('admin-filter-profesor');
       elements.tipo = document.getElementById('admin-filter-tipo');
       elements.clearFilters = document.getElementById('admin-clear-filters');
+      elements.exportCsv = document.getElementById('admin-export-csv');
       elements.loadingState = document.getElementById('admin-loading-state');
       elements.alert = document.getElementById('admin-alert');
       elements.tableWrapper = document.getElementById('admin-table-wrapper');
@@ -29,12 +34,36 @@
         elements.form.reset();
         load();
       });
+      elements.exportCsv.addEventListener('click', exportCsv);
     }
 
     /**
      * Carga solicitudes aplicando filtros.
      */
     function load() {
+      if (!state.motivosLoaded) {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function(motivos) {
+            state.motivosLoaded = true;
+            renderMotivos(motivos || []);
+            loadSolicitudes();
+          })
+          .withFailureHandler(function(error) {
+            hideLoading();
+            showAlert('danger', getErrorMessage(error));
+          })
+          .listarMotivos();
+        return;
+      }
+
+      loadSolicitudes();
+    }
+
+    /**
+     * Carga solicitudes aplicando filtros.
+     */
+    function loadSolicitudes() {
       showLoading();
       google.script.run
         .withSuccessHandler(renderSolicitudes)
@@ -58,17 +87,33 @@
       hideLoading();
       hideAlert();
       elements.body.innerHTML = '';
+      state.solicitudes = solicitudes || [];
 
-      if (!solicitudes || !solicitudes.length) {
+      if (!state.solicitudes.length) {
         showAlert('info', 'No hay solicitudes para los filtros seleccionados.');
         return;
       }
 
-      solicitudes.forEach(function(solicitud) {
+      state.solicitudes.forEach(function(solicitud) {
         elements.body.appendChild(buildRow(solicitud));
       });
 
       elements.tableWrapper.classList.remove('d-none');
+    }
+
+    /**
+     * Renderiza el selector de motivos oficiales.
+     *
+     * @param {string[]} motivos Motivos.
+     */
+    function renderMotivos(motivos) {
+      elements.tipo.innerHTML = '<option value="">Todos los tipos</option>';
+      motivos.forEach(function(motivo) {
+        const option = document.createElement('option');
+        option.value = motivo;
+        option.textContent = motivo;
+        elements.tipo.appendChild(option);
+      });
     }
 
     /**
@@ -119,6 +164,52 @@
           showAlert('danger', getErrorMessage(error));
         })
         .cambiarEstadoSolicitud(id, estado);
+    }
+
+    /**
+     * Exporta el listado actual a CSV.
+     */
+    function exportCsv() {
+      if (!state.solicitudes.length) {
+        showAlert('info', 'No hay datos para exportar.');
+        return;
+      }
+
+      const headers = ['ID', 'Fecha', 'Profesor', 'Email', 'Tipo', 'Estado', 'PDF'];
+      const rows = state.solicitudes.map(function(solicitud) {
+        return [
+          solicitud.id,
+          solicitud.fecha,
+          solicitud.profesor,
+          solicitud.email,
+          solicitud.motivo,
+          solicitud.estado,
+          solicitud.pdfUrl
+        ];
+      });
+      const csv = [headers].concat(rows).map(function(row) {
+        return row.map(csvEscape).join(',');
+      }).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'solicitudes_' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Escapa un valor CSV.
+     *
+     * @param {*} value Valor.
+     * @return {string} Valor CSV.
+     */
+    function csvEscape(value) {
+      const text = String(value || '');
+      return '"' + text.replace(/"/g, '""') + '"';
     }
 
     /**

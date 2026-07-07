@@ -21,12 +21,18 @@
     </div>
     <div class="col-12 col-md-5">
       <label class="form-label" for="admin-filter-tipo">Tipo de ausencia</label>
-      <input class="form-control" id="admin-filter-tipo" type="search" placeholder="Motivo">
+      <select class="form-select" id="admin-filter-tipo">
+        <option value="">Todos los tipos</option>
+      </select>
     </div>
     <div class="col-12 d-flex justify-content-end gap-2">
       <button class="btn btn-outline-secondary" id="admin-clear-filters" type="button">
         <i class="bi bi-eraser"></i>
         Limpiar
+      </button>
+      <button class="btn btn-outline-primary" id="admin-export-csv" type="button">
+        <i class="bi bi-download"></i>
+        Exportar CSV
       </button>
       <button class="btn btn-primary" type="submit">
         <i class="bi bi-search"></i>

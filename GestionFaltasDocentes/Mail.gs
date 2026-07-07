@@ -63,6 +63,39 @@ function notificarNuevaSolicitud(solicitud) {
 }
 
 /**
+ * Notifica al profesor la resolucion administrativa de su solicitud.
+ *
+ * @param {Object} solicitud Solicitud actualizada.
+ */
+function notificarResolucionSolicitud(solicitud) {
+  const correoProfesor = normalizeText(solicitud.Email);
+
+  if (!correoProfesor) {
+    throw new Error('La solicitud no tiene email de profesor.');
+  }
+
+  const estado = normalizeText(solicitud.Estado);
+  const pdfUrl = getDriveViewUrl(solicitud.PDFDriveId);
+  const subject = 'Resolucion de solicitud ' + solicitud.ID + ': ' + estado;
+  const body = [
+    'Se ha actualizado el estado de su solicitud de falta docente.',
+    '',
+    'ID: ' + solicitud.ID,
+    'Estado: ' + estado,
+    'Motivo: ' + solicitud.Motivo,
+    '',
+    'PDF: ' + pdfUrl
+  ].join('\n');
+
+  MailApp.sendEmail({
+    to: correoProfesor,
+    subject: subject,
+    body: body,
+    name: APP.NAME
+  });
+}
+
+/**
  * Envia un correo de prueba a Direccion y al usuario actual.
  *
  * Ejecutar manualmente desde Apps Script para verificar permisos y cuota de
