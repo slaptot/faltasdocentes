@@ -27,7 +27,7 @@ function getCurrentUser() {
     return {
       authorized: true,
       email: email,
-      nombre: buildNameFromEmail_(email),
+      nombre: getGoogleDirectoryFullName_(email) || buildNameFromEmail_(email),
       departamento: '',
       rol: isAdmin ? ROLES.ADMIN : ROLES.PROFESOR,
       isAdmin: isAdmin
@@ -108,6 +108,31 @@ function isAllowedDomain_(email) {
   }
 
   return normalizeText(email).toLowerCase().endsWith('@' + domain);
+}
+
+/**
+ * Obtiene el nombre completo del usuario desde Google Workspace Directory.
+ *
+ * Requiere el servicio avanzado AdminDirectory. Si no esta disponible o el
+ * desplegador no tiene permisos de lectura del directorio, devuelve cadena
+ * vacia para mantener la aplicacion operativa.
+ *
+ * @param {string} email Correo del usuario.
+ * @return {string} Nombre completo o cadena vacia.
+ * @private
+ */
+function getGoogleDirectoryFullName_(email) {
+  if (typeof AdminDirectory === 'undefined') {
+    return '';
+  }
+
+  try {
+    const user = AdminDirectory.Users.get(email);
+    return normalizeText(user && user.name && user.name.fullName);
+  } catch (error) {
+    console.warn('No se ha podido obtener el nombre completo desde Google Directory', error);
+    return '';
+  }
 }
 
 /**
