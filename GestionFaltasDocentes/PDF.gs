@@ -132,7 +132,8 @@ function replaceTablaMarker_(body, solicitud) {
 
   if (!found) {
     body.appendParagraph('');
-    body.appendTable(tableRows);
+    const table = body.appendTable(tableRows);
+    formatAusenciasTable_(table);
     return;
   }
 
@@ -140,7 +141,8 @@ function replaceTablaMarker_(body, solicitud) {
   const paragraph = markerElement.getParent();
   const childIndex = body.getChildIndex(paragraph);
   markerElement.asText().deleteText(found.getStartOffset(), found.getEndOffsetInclusive());
-  body.insertTable(childIndex + 1, tableRows);
+  const table = body.insertTable(childIndex + 1, tableRows);
+  formatAusenciasTable_(table);
 }
 
 /**
@@ -152,17 +154,40 @@ function replaceTablaMarker_(body, solicitud) {
  */
 function buildAusenciasTableRows_(solicitud) {
   const ausencias = extractAusenciasFromObservaciones_(solicitud.Observaciones);
-  const headers = ['Fecha', 'Dia entero', 'Hora salida', 'Hora vuelta'];
+  const headers = ['Fecha', 'Tipo', 'Horario'];
   const rows = ausencias.map(function(ausencia) {
     return [
       formatDateForPdf_(ausencia.fecha),
-      ausencia.diaEntero ? 'Si' : 'No',
-      ausencia.diaEntero ? '-' : ausencia.horaSalida,
-      ausencia.diaEntero ? '-' : ausencia.horaVuelta
+      ausencia.diaEntero ? 'Dia entero' : 'Parcial',
+      ausencia.diaEntero ? '-' : ausencia.horaSalida + ' - ' + ausencia.horaVuelta
     ];
   });
 
-  return [headers].concat(rows.length ? rows : [['-', '-', '-', '-']]);
+  return [headers].concat(rows.length ? rows : [['-', '-', '-']]);
+}
+
+/**
+ * Aplica formato compacto a la tabla de ausencias insertada.
+ *
+ * @param {Table} table Tabla insertada.
+ * @private
+ */
+function formatAusenciasTable_(table) {
+  for (let rowIndex = 0; rowIndex < table.getNumRows(); rowIndex++) {
+    const row = table.getRow(rowIndex);
+
+    for (let cellIndex = 0; cellIndex < row.getNumCells(); cellIndex++) {
+      const cell = row.getCell(cellIndex);
+      const text = cell.editAsText();
+
+      text.setFontSize(8);
+      text.setFontFamily('Times New Roman');
+
+      if (rowIndex === 0) {
+        text.setBold(true);
+      }
+    }
+  }
 }
 
 /**
