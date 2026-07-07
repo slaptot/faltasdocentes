@@ -32,7 +32,6 @@ function notificarNuevaSolicitud(solicitud) {
     '',
     'ID: ' + solicitud.ID,
     'Docente: ' + solicitud.Profesor,
-    'Departamento: ' + solicitud.Departamento,
     'Motivo: ' + solicitud.Motivo,
     'Estado: ' + solicitud.Estado,
     '',
