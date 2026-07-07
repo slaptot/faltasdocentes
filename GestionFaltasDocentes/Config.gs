@@ -44,6 +44,7 @@ const PDF_MARKERS = Object.freeze({
   MOTIVO: '<<MOTIVO>>',
   OBSERVACIONES: '<<OBSERVACIONES>>',
   FECHA: '<<FECHA>>',
+  FECHA_DOCUMENTO: '<<FECHADOCUMENTO>>',
   TABLA: '<<TABLA>>'
 });
 

@@ -111,6 +111,7 @@ function replaceTextMarkers_(body, solicitud) {
   replacements[PDF_MARKERS.MOTIVO] = solicitud.Motivo;
   replacements[PDF_MARKERS.OBSERVACIONES] = observaciones || '-';
   replacements[PDF_MARKERS.FECHA] = formatDateForPdf_(solicitud.FechaSolicitud || new Date());
+  replacements[PDF_MARKERS.FECHA_DOCUMENTO] = formatLongDateForPdf_(solicitud.FechaSolicitud || new Date());
 
   Object.keys(replacements).forEach(function(marker) {
     body.replaceText(escapeForReplaceText_(marker), sanitizeDocumentText_(replacements[marker]));
@@ -199,4 +200,36 @@ function formatDateForPdf_(value) {
   }
 
   return Utilities.formatDate(date, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+}
+
+/**
+ * Formatea la fecha para la linea final del documento.
+ *
+ * @param {*} value Fecha o cadena ISO.
+ * @return {string} Fecha en formato "7 de julio de 2026".
+ * @private
+ */
+function formatLongDateForPdf_(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (isNaN(date.getTime())) {
+    return normalizeText(value);
+  }
+
+  const months = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre'
+  ];
+
+  return date.getDate() + ' de ' + months[date.getMonth()] + ' de ' + date.getFullYear();
 }
