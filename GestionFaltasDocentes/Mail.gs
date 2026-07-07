@@ -3,12 +3,12 @@
  *
  * Responsabilidades:
  * - Enviar notificación a Dirección.
- * - Enviar copia de confirmacion al profesor.
+ * - Enviar copia de confirmación al docente.
  * - Incluir enlaces a PDF cuando proceda.
  */
 
 /**
- * Notifica una nueva solicitud a Dirección y al profesor.
+ * Notifica una nueva solicitud a Dirección y al docente.
  *
  * @param {Object} solicitud Solicitud creada.
  */
@@ -22,7 +22,7 @@ function notificarNuevaSolicitud(solicitud) {
   }
 
   if (!correoProfesor) {
-    throw new Error('La solicitud no tiene email de profesor.');
+    throw new Error('La solicitud no tiene email de docente.');
   }
 
   const pdfUrl = getDriveDownloadUrl(solicitud.PDFDriveId);
@@ -31,7 +31,7 @@ function notificarNuevaSolicitud(solicitud) {
     'Se ha registrado una nueva solicitud de falta docente.',
     '',
     'ID: ' + solicitud.ID,
-    'Profesor: ' + solicitud.Profesor,
+    'Docente: ' + solicitud.Profesor,
     'Departamento: ' + solicitud.Departamento,
     'Motivo: ' + solicitud.Motivo,
     'Estado: ' + solicitud.Estado,
@@ -73,7 +73,7 @@ function notificarNuevaSolicitud(solicitud) {
 }
 
 /**
- * Notifica al profesor la resolución administrativa de su solicitud.
+ * Notifica al docente la resolución administrativa de su solicitud.
  *
  * @param {Object} solicitud Solicitud actualizada.
  */
@@ -81,7 +81,7 @@ function notificarResolucionSolicitud(solicitud) {
   const correoProfesor = normalizeText(solicitud.Email);
 
   if (!correoProfesor) {
-    throw new Error('La solicitud no tiene email de profesor.');
+    throw new Error('La solicitud no tiene email de docente.');
   }
 
   const estado = normalizeText(solicitud.Estado);
