@@ -1,6 +1,282 @@
 <script>
   /**
    * Cliente del modulo Nueva solicitud.
-   * Pendiente de implementacion tras confirmacion del modulo Formulario.
    */
+  (function() {
+    const tramos = ['1', '2', 'R1', '3', '4', 'R2', '5', '6'];
+    const state = {
+      loaded: false,
+      motivos: []
+    };
+    const elements = {};
+
+    document.addEventListener('DOMContentLoaded', initNuevaSolicitud);
+
+    /**
+     * Inicializa el formulario cuando el DOM esta disponible.
+     */
+    function initNuevaSolicitud() {
+      elements.form = document.getElementById('nueva-solicitud-form');
+      elements.profesor = document.getElementById('form-profesor');
+      elements.departamento = document.getElementById('form-departamento');
+      elements.email = document.getElementById('form-email');
+      elements.ausenciasBody = document.getElementById('ausencias-body');
+      elements.addAusenciaRow = document.getElementById('add-ausencia-row');
+      elements.motivoSearch = document.getElementById('motivo-search');
+      elements.motivoSelect = document.getElementById('motivo-select');
+      elements.justificante = document.getElementById('justificante-file');
+      elements.observaciones = document.getElementById('observaciones');
+      elements.alert = document.getElementById('form-alert');
+      elements.submit = document.getElementById('submit-solicitud');
+
+      if (!elements.form) {
+        return;
+      }
+
+      elements.addAusenciaRow.addEventListener('click', addAusenciaRow);
+      elements.motivoSearch.addEventListener('input', renderMotivos);
+      elements.form.addEventListener('submit', submitSolicitud);
+    }
+
+    /**
+     * Carga datos del servidor la primera vez que se abre la vista.
+     */
+    function load() {
+      if (state.loaded) {
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          state.loaded = true;
+          elements.profesor.value = data.profesor.nombre || '';
+          elements.departamento.value = data.profesor.departamento || '';
+          elements.email.value = data.profesor.email || '';
+          state.motivos = data.motivos || [];
+          renderMotivos();
+          addAusenciaRow();
+        })
+        .withFailureHandler(function(error) {
+          showAlert('danger', getErrorMessage(error));
+        })
+        .getNuevaSolicitudData();
+    }
+
+    /**
+     * Anade una fila de ausencias.
+     */
+    function addAusenciaRow() {
+      const row = document.createElement('tr');
+      row.innerHTML = [
+        '<td><input class="form-control form-control-sm ausencia-fecha" type="date" required></td>',
+        tramos.map(function(tramo) {
+          return '<td>' + buildTramoSelect(tramo) + '</td>';
+        }).join(''),
+        '<td><button class="btn btn-outline-danger btn-sm" type="button" title="Eliminar dia"><i class="bi bi-trash"></i></button></td>'
+      ].join('');
+
+      row.querySelector('button').addEventListener('click', function() {
+        if (elements.ausenciasBody.children.length > 1) {
+          row.remove();
+        }
+      });
+
+      elements.ausenciasBody.appendChild(row);
+    }
+
+    /**
+     * Construye el desplegable de un tramo.
+     *
+     * @param {string} tramo Tramo horario.
+     * @return {string} HTML del select.
+     */
+    function buildTramoSelect(tramo) {
+      return [
+        '<select class="form-select form-select-sm ausencia-tramo" data-tramo="' + tramo + '">',
+        '<option value="-">-</option>',
+        '<option value="L">L</option>',
+        '<option value="C">C</option>',
+        '</select>'
+      ].join('');
+    }
+
+    /**
+     * Renderiza motivos filtrados por buscador.
+     */
+    function renderMotivos() {
+      const selectedValue = elements.motivoSelect.value;
+      const query = normalizeClientText(elements.motivoSearch.value).toLowerCase();
+      const filtered = state.motivos.filter(function(motivo) {
+        return normalizeClientText(motivo).toLowerCase().indexOf(query) !== -1;
+      });
+
+      elements.motivoSelect.innerHTML = '<option value="">Seleccione un motivo</option>';
+      filtered.forEach(function(motivo) {
+        const option = document.createElement('option');
+        option.value = motivo;
+        option.textContent = motivo;
+        elements.motivoSelect.appendChild(option);
+      });
+
+      if (filtered.indexOf(selectedValue) !== -1) {
+        elements.motivoSelect.value = selectedValue;
+      }
+    }
+
+    /**
+     * Envia la solicitud al servidor.
+     *
+     * @param {Event} event Evento submit.
+     */
+    function submitSolicitud(event) {
+      event.preventDefault();
+      setSubmitting(true);
+      hideAlert();
+
+      buildPayload()
+        .then(function(payload) {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente.');
+              elements.form.reset();
+              elements.ausenciasBody.innerHTML = '';
+              addAusenciaRow();
+              setSubmitting(false);
+            })
+            .withFailureHandler(function(error) {
+              showAlert('danger', getErrorMessage(error));
+              setSubmitting(false);
+            })
+            .crearSolicitud(payload);
+        })
+        .catch(function(error) {
+          showAlert('danger', error.message);
+          setSubmitting(false);
+        });
+    }
+
+    /**
+     * Construye el payload validado del formulario.
+     *
+     * @return {Promise<Object>} Payload listo para servidor.
+     */
+    function buildPayload() {
+      const motivo = elements.motivoSelect.value;
+
+      if (!motivo) {
+        return Promise.reject(new Error('Debe seleccionar un motivo.'));
+      }
+
+      const ausencias = Array.from(elements.ausenciasBody.querySelectorAll('tr')).map(function(row) {
+        const tramosData = {};
+        row.querySelectorAll('.ausencia-tramo').forEach(function(select) {
+          tramosData[select.dataset.tramo] = select.value;
+        });
+
+        return {
+          fecha: row.querySelector('.ausencia-fecha').value,
+          tramos: tramosData
+        };
+      });
+
+      return readSelectedFile().then(function(filePayload) {
+        return {
+          motivo: motivo,
+          observaciones: elements.observaciones.value,
+          ausencias: ausencias,
+          justificante: filePayload
+        };
+      });
+    }
+
+    /**
+     * Lee el archivo seleccionado como base64.
+     *
+     * @return {Promise<Object|null>} Archivo serializado o null.
+     */
+    function readSelectedFile() {
+      const file = elements.justificante.files[0];
+
+      if (!file) {
+        return Promise.resolve(null);
+      }
+
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+
+      if (allowedTypes.indexOf(file.type) === -1) {
+        return Promise.reject(new Error('El justificante debe ser PDF, JPG o PNG.'));
+      }
+
+      return new Promise(function(resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function() {
+          const result = String(reader.result || '');
+          resolve({
+            name: file.name,
+            mimeType: file.type,
+            data: result.split(',')[1] || ''
+          });
+        };
+        reader.onerror = function() {
+          reject(new Error('No se ha podido leer el justificante.'));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /**
+     * Cambia el estado visual del envio.
+     *
+     * @param {boolean} submitting True mientras se envia.
+     */
+    function setSubmitting(submitting) {
+      elements.submit.disabled = submitting;
+      elements.submit.innerHTML = submitting
+        ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Guardando'
+        : '<i class="bi bi-file-earmark-check"></i> Generar solicitud';
+    }
+
+    /**
+     * Muestra una alerta del formulario.
+     *
+     * @param {string} type Tipo Bootstrap.
+     * @param {string} message Mensaje.
+     */
+    function showAlert(type, message) {
+      elements.alert.className = 'alert alert-' + type;
+      elements.alert.textContent = message;
+    }
+
+    /**
+     * Oculta la alerta del formulario.
+     */
+    function hideAlert() {
+      elements.alert.className = 'alert d-none';
+      elements.alert.textContent = '';
+    }
+
+    /**
+     * Extrae un mensaje de error legible.
+     *
+     * @param {Error} error Error recibido.
+     * @return {string} Mensaje.
+     */
+    function getErrorMessage(error) {
+      return error && error.message ? error.message : 'No se ha podido completar la operacion.';
+    }
+
+    /**
+     * Normaliza texto en cliente para busquedas sencillas.
+     *
+     * @param {string} value Valor.
+     * @return {string} Texto normalizado.
+     */
+    function normalizeClientText(value) {
+      return String(value || '').trim();
+    }
+
+    window.GestionFaltasDocentesNueva = {
+      load: load
+    };
+  })();
 </script>

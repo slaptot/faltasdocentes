@@ -22,6 +22,8 @@
       elements.userDepartment = document.getElementById('user-department');
       elements.userDepartmentWrapper = document.getElementById('user-department-wrapper');
       elements.adminCard = document.getElementById('admin-card');
+      elements.menuView = document.getElementById('menu-view');
+      elements.nuevaView = document.getElementById('view-nueva');
 
       google.script.run
         .withSuccessHandler(renderAuthState)
@@ -53,6 +55,7 @@
         hide(elements.adminCard);
       }
 
+      bindNavigation();
       show(elements.mainState);
     }
 
@@ -102,8 +105,40 @@
       }
     }
 
+    /**
+     * Activa la navegacion basica entre menu y vistas implementadas.
+     */
+    function bindNavigation() {
+      document.querySelectorAll('[data-view-target]').forEach(function(button) {
+        button.addEventListener('click', function() {
+          showView(button.getAttribute('data-view-target'));
+        });
+      });
+    }
+
+    /**
+     * Muestra una vista principal.
+     *
+     * @param {string} viewName Nombre de vista.
+     */
+    function showView(viewName) {
+      if (viewName === 'nueva') {
+        hide(elements.menuView);
+        show(elements.nuevaView);
+
+        if (window.GestionFaltasDocentesNueva) {
+          window.GestionFaltasDocentesNueva.load();
+        }
+        return;
+      }
+
+      hide(elements.nuevaView);
+      show(elements.menuView);
+    }
+
     window.GestionFaltasDocentes = {
-      ready: true
+      ready: true,
+      showView: showView
     };
   })();
 </script>

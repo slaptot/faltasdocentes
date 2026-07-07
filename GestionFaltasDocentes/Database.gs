@@ -246,7 +246,7 @@ function getSolicitudYearPrefix() {
   const match = cursoEscolar.match(/\d{4}/g);
 
   if (match && match.length) {
-    return match[match.length - 1];
+    return match[0];
   }
 
   return String(new Date().getFullYear());
