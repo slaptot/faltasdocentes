@@ -189,8 +189,14 @@
 
   body[data-theme="dark"] .table {
     --bs-table-hover-bg: #221f28;
+    --bs-table-hover-color: var(--app-ink);
     --bs-table-bg: var(--app-surface);
     --bs-table-color: var(--app-ink);
+  }
+
+  body[data-theme="dark"] .table-hover > tbody > tr:hover > * {
+    background-color: #221f28;
+    color: var(--app-ink);
   }
 
   .table thead th {
