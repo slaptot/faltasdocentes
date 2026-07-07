@@ -22,19 +22,7 @@ function getCurrentUser() {
       return buildUnauthorizedUser_(email);
     }
 
-    const profesor = findProfesorByEmail(email);
     const isAdmin = isAdminEmail_(email);
-
-    if (profesor) {
-      return {
-        authorized: true,
-        email: profesor.email,
-        nombre: profesor.nombre || buildNameFromEmail_(email),
-        departamento: profesor.departamento,
-        rol: isAdmin ? ROLES.ADMIN : ROLES.PROFESOR,
-        isAdmin: isAdmin
-      };
-    }
 
     return {
       authorized: true,

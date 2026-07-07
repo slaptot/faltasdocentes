@@ -57,6 +57,9 @@
       if (user.departamento) {
         elements.userDepartment.textContent = user.departamento;
         show(elements.userDepartmentWrapper);
+      } else {
+        elements.userDepartment.textContent = '';
+        hide(elements.userDepartmentWrapper);
       }
 
       if (!user.isAdmin) {
