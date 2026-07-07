@@ -79,6 +79,23 @@
     transform: translateY(-2px);
   }
 
+  body[data-theme="dark"] .card,
+  body[data-theme="dark"] .app-card {
+    --bs-card-bg: #121c25;
+    --bs-card-color: var(--app-ink);
+    background: #121c25;
+    border-color: #3d4c59;
+    border-top-color: var(--app-red);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+    color: var(--app-ink);
+  }
+
+  body[data-theme="dark"] .app-card:hover {
+    border-color: #4e5f6d;
+    border-top-color: var(--app-red);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.36);
+  }
+
   .app-loading-panel {
     border: 1px dashed #c7d1d9;
     border-radius: 8px;
