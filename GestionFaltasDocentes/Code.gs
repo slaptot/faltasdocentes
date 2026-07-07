@@ -37,7 +37,7 @@ function getAppStatus() {
       baseDatos: 'COMPLETO',
       formulario: 'COMPLETO',
       pdf: 'COMPLETO',
-      administracion: 'PENDIENTE'
+      administracion: 'COMPLETO'
     }
   };
 }

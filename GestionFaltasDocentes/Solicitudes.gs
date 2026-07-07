@@ -91,7 +91,22 @@ function listarMisSolicitudes() {
  * @return {Object[]} Solicitudes filtradas.
  */
 function listarSolicitudesAdmin(filtros) {
-  notImplemented('Administracion');
+  const user = getCurrentUser();
+
+  if (!user.authorized || !user.isAdmin) {
+    throw new Error('No tiene permisos de administracion.');
+  }
+
+  const normalizedFilters = normalizeAdminFilters_(filtros);
+
+  return readSheetObjects_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES)
+    .filter(function(solicitud) {
+      return matchesAdminFilters_(solicitud, normalizedFilters);
+    })
+    .map(mapSolicitudForAdminClient_)
+    .sort(function(a, b) {
+      return String(b.fechaCreacion || '').localeCompare(String(a.fechaCreacion || ''));
+    });
 }
 
 /**
@@ -102,7 +117,38 @@ function listarSolicitudesAdmin(filtros) {
  * @return {Object} Solicitud actualizada.
  */
 function cambiarEstadoSolicitud(id, estado) {
-  notImplemented('Administracion');
+  const user = getCurrentUser();
+
+  if (!user.authorized || !user.isAdmin) {
+    throw new Error('No tiene permisos de administracion.');
+  }
+
+  const solicitudId = normalizeText(id);
+  const normalizedEstado = normalizeText(estado).toUpperCase();
+  const allowedEstados = [
+    ESTADOS_SOLICITUD.PENDIENTE,
+    ESTADOS_SOLICITUD.ACEPTADA,
+    ESTADOS_SOLICITUD.RECHAZADA,
+    ESTADOS_SOLICITUD.INVALIDA
+  ];
+
+  if (allowedEstados.indexOf(normalizedEstado) === -1) {
+    throw new Error('Estado no valido.');
+  }
+
+  const rowIndex = findSolicitudRowIndex_(solicitudId);
+
+  if (!rowIndex) {
+    throw new Error('No se ha encontrado la solicitud.');
+  }
+
+  const sheet = getOrCreateSheet_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES);
+  sheet
+    .getRange(rowIndex, HEADERS.SOLICITUDES.indexOf('Estado') + 1)
+    .setValue(normalizedEstado);
+
+  const rowValues = sheet.getRange(rowIndex, 1, 1, HEADERS.SOLICITUDES.length).getValues()[0];
+  return mapSolicitudForAdminClient_(rowToObject_(HEADERS.SOLICITUDES, rowValues));
 }
 
 /**
@@ -356,6 +402,91 @@ function mapSolicitudForClient_(solicitud) {
     pdfUrl: getDriveViewUrl(pdfDriveId),
     fechaCreacion: formatSortableDate_(solicitud.FechaCreacion)
   };
+}
+
+/**
+ * Convierte una solicitud de hoja a objeto para Administracion.
+ *
+ * @param {Object} solicitud Solicitud de hoja.
+ * @return {Object} Solicitud para UI admin.
+ * @private
+ */
+function mapSolicitudForAdminClient_(solicitud) {
+  const base = mapSolicitudForClient_(solicitud);
+
+  base.profesor = normalizeText(solicitud.Profesor);
+  base.email = normalizeText(solicitud.Email);
+  base.departamento = normalizeText(solicitud.Departamento);
+  base.justificanteUrl = getDriveViewUrl(solicitud.JustificanteDriveId);
+
+  return base;
+}
+
+/**
+ * Normaliza filtros de administracion.
+ *
+ * @param {Object} filtros Filtros recibidos.
+ * @return {Object} Filtros normalizados.
+ * @private
+ */
+function normalizeAdminFilters_(filtros) {
+  const data = filtros || {};
+
+  return {
+    mes: normalizeText(data.mes),
+    profesor: normalizeText(data.profesor).toLowerCase(),
+    tipo: normalizeText(data.tipo).toLowerCase()
+  };
+}
+
+/**
+ * Comprueba si una solicitud cumple filtros de administracion.
+ *
+ * @param {Object} solicitud Solicitud.
+ * @param {Object} filtros Filtros normalizados.
+ * @return {boolean} True si cumple.
+ * @private
+ */
+function matchesAdminFilters_(solicitud, filtros) {
+  if (filtros.mes && formatMonthFilter_(solicitud.FechaSolicitud) !== filtros.mes) {
+    return false;
+  }
+
+  if (filtros.profesor) {
+    const haystack = [
+      solicitud.Profesor,
+      solicitud.Email
+    ].map(function(value) {
+      return normalizeText(value).toLowerCase();
+    }).join(' ');
+
+    if (haystack.indexOf(filtros.profesor) === -1) {
+      return false;
+    }
+  }
+
+  if (filtros.tipo && normalizeText(solicitud.Motivo).toLowerCase().indexOf(filtros.tipo) === -1) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Formatea una fecha como YYYY-MM para filtro mensual.
+ *
+ * @param {*} value Fecha.
+ * @return {string} Mes normalizado.
+ * @private
+ */
+function formatMonthFilter_(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM');
 }
 
 /**

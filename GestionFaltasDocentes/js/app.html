@@ -26,6 +26,7 @@
       elements.menuView = document.getElementById('menu-view');
       elements.nuevaView = document.getElementById('view-nueva');
       elements.historialView = document.getElementById('view-historial');
+      elements.adminView = document.getElementById('view-admin');
       elements.logoutButton = document.getElementById('logout-button');
       elements.loginAgainButton = document.getElementById('login-again-button');
 
@@ -134,6 +135,7 @@
       if (viewName === 'nueva') {
         hide(elements.menuView);
         hide(elements.historialView);
+        hide(elements.adminView);
         show(elements.nuevaView);
 
         if (window.GestionFaltasDocentesNueva) {
@@ -145,6 +147,7 @@
       if (viewName === 'historial') {
         hide(elements.menuView);
         hide(elements.nuevaView);
+        hide(elements.adminView);
         show(elements.historialView);
 
         if (window.GestionFaltasDocentesHistorial) {
@@ -153,8 +156,21 @@
         return;
       }
 
+      if (viewName === 'admin') {
+        hide(elements.menuView);
+        hide(elements.nuevaView);
+        hide(elements.historialView);
+        show(elements.adminView);
+
+        if (window.GestionFaltasDocentesAdmin) {
+          window.GestionFaltasDocentesAdmin.load();
+        }
+        return;
+      }
+
       hide(elements.nuevaView);
       hide(elements.historialView);
+      hide(elements.adminView);
       show(elements.menuView);
     }
 

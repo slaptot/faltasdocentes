@@ -1,3 +1,66 @@
 <section id="view-admin" class="d-none">
-  <!-- Modulo Administracion pendiente de implementacion. -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="h4 mb-1">Administracion</h2>
+      <p class="text-secondary mb-0">Listados mensuales, busqueda por profesor y tipo de ausencia.</p>
+    </div>
+    <button class="btn btn-outline-secondary" type="button" data-view-target="menu">
+      <i class="bi bi-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <form class="row g-3 mb-4" id="admin-filters-form">
+    <div class="col-12 col-md-3">
+      <label class="form-label" for="admin-filter-month">Mes</label>
+      <input class="form-control" id="admin-filter-month" type="month">
+    </div>
+    <div class="col-12 col-md-4">
+      <label class="form-label" for="admin-filter-profesor">Profesor</label>
+      <input class="form-control" id="admin-filter-profesor" type="search" placeholder="Nombre o correo">
+    </div>
+    <div class="col-12 col-md-5">
+      <label class="form-label" for="admin-filter-tipo">Tipo de ausencia</label>
+      <input class="form-control" id="admin-filter-tipo" type="search" placeholder="Motivo">
+    </div>
+    <div class="col-12 d-flex justify-content-end gap-2">
+      <button class="btn btn-outline-secondary" id="admin-clear-filters" type="button">
+        <i class="bi bi-eraser"></i>
+        Limpiar
+      </button>
+      <button class="btn btn-primary" type="submit">
+        <i class="bi bi-search"></i>
+        Buscar
+      </button>
+    </div>
+  </form>
+
+  <div class="app-loading-panel" id="admin-loading-state">
+    <div class="d-flex align-items-center gap-3">
+      <div class="spinner-border app-spinner" role="status" aria-hidden="true"></div>
+      <div>
+        <h3 class="h6 mb-1">Cargando solicitudes</h3>
+        <p class="text-secondary mb-0">Recuperando solicitudes registradas.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert d-none" id="admin-alert" role="alert"></div>
+
+  <div class="table-responsive d-none" id="admin-table-wrapper">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Fecha</th>
+          <th scope="col">Profesor</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Estado</th>
+          <th scope="col">PDF</th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody id="admin-body"></tbody>
+    </table>
+  </div>
 </section>
