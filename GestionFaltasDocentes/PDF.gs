@@ -27,11 +27,15 @@ function generarDocumentoSolicitud(solicitud) {
   const documentFile = templateFile.makeCopy('Solicitud_' + solicitud.ID, pdfFolder);
   const documentId = documentFile.getId();
   const document = DocumentApp.openById(documentId);
-  const body = document.getBody();
 
   replaceTextMarkers_(document, solicitud);
-  replaceTablaMarker_(body, solicitud);
   document.saveAndClose();
+  replaceTextMarkersWithDocsApi_(documentId, buildTextReplacements_(solicitud));
+
+  const tableDocument = DocumentApp.openById(documentId);
+  const tableBody = tableDocument.getBody();
+  replaceTablaMarker_(tableBody, solicitud);
+  tableDocument.saveAndClose();
 
   const pdfBlob = DriveApp.getFileById(documentId)
     .getBlob()
@@ -102,6 +106,21 @@ function getGoogleDocsTemplateFile_(templateId) {
  * @private
  */
 function replaceTextMarkers_(document, solicitud) {
+  const replacements = buildTextReplacements_(solicitud);
+
+  Object.keys(replacements).forEach(function(marker) {
+    replaceMarkerEverywhere_(document, marker, replacements[marker]);
+  });
+}
+
+/**
+ * Construye los reemplazos de texto de una solicitud.
+ *
+ * @param {Object} solicitud Solicitud.
+ * @return {Object} Mapa marcador-valor.
+ * @private
+ */
+function buildTextReplacements_(solicitud) {
   const observaciones = extractVisibleObservaciones_(solicitud.Observaciones);
   const replacements = {};
 
@@ -114,9 +133,52 @@ function replaceTextMarkers_(document, solicitud) {
   replacements[PDF_MARKERS.FECHA_DOCUMENTO] = formatLongDateForPdf_(solicitud.FechaSolicitud || new Date());
   replacements[PDF_MARKERS.DOCUMENTO_ID] = getDriveViewUrl(solicitud.JustificanteDriveId) || '-';
 
-  Object.keys(replacements).forEach(function(marker) {
-    replaceMarkerEverywhere_(document, marker, replacements[marker]);
+  return replacements;
+}
+
+/**
+ * Reemplaza marcadores en todo el documento mediante Google Docs API.
+ *
+ * DocumentApp no siempre alcanza pies o cabeceras especiales de primera pagina.
+ *
+ * @param {string} documentId ID del documento.
+ * @param {Object} replacements Mapa marcador-valor.
+ * @private
+ */
+function replaceTextMarkersWithDocsApi_(documentId, replacements) {
+  const requests = Object.keys(replacements).map(function(marker) {
+    return {
+      replaceAllText: {
+        containsText: {
+          text: marker,
+          matchCase: true
+        },
+        replaceText: normalizeText(replacements[marker])
+      }
+    };
   });
+
+  if (!requests.length) {
+    return;
+  }
+
+  const response = UrlFetchApp.fetch(
+    'https://docs.googleapis.com/v1/documents/' + encodeURIComponent(documentId) + ':batchUpdate',
+    {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
+      },
+      payload: JSON.stringify({requests: requests}),
+      muteHttpExceptions: true
+    }
+  );
+  const status = response.getResponseCode();
+
+  if (status < 200 || status >= 300) {
+    throw new Error('No se han podido reemplazar marcadores con Google Docs API: ' + response.getContentText());
+  }
 }
 
 /**
