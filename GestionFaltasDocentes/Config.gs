@@ -8,7 +8,8 @@ const APP = Object.freeze({
   NAME: 'Gestion de Faltas Docentes',
   CENTER: 'IES Leonardo de Chabacier',
   LOCATION: 'Calatayud',
-  VERSION: '0.1.0-estructura'
+  VERSION: '0.2.0-auth',
+  SPREADSHEET_ID: '1Po8Cf1UQdnNQP8Z1hSnWZTlaPz97HADuK_h_407pd0I'
 });
 
 const SHEETS = Object.freeze({
@@ -35,4 +36,8 @@ const CONFIG_KEYS = Object.freeze({
   PLANTILLA_DOCS: 'PlantillaDocs',
   CORREO_DIRECCION: 'CorreoDireccion',
   CURSO_ESCOLAR: 'CursoEscolar'
+});
+
+const HEADERS = Object.freeze({
+  PROFESORES: ['Email', 'Nombre', 'Departamento', 'Rol', 'Activo']
 });
