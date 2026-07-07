@@ -27,7 +27,7 @@ function getCurrentUser() {
     return {
       authorized: true,
       email: email,
-      nombre: getGoogleDirectoryFullName_(email) || buildNameFromEmail_(email),
+      nombre: getGoogleDirectoryProfile_(email).fullName || buildNameFromEmail_(email),
       departamento: '',
       rol: isAdmin ? ROLES.ADMIN : ROLES.PROFESOR,
       isAdmin: isAdmin
@@ -60,6 +60,32 @@ function isCurrentUserAdmin() {
  */
 function getAuthState() {
   return getCurrentUser();
+}
+
+/**
+ * Devuelve informacion de diagnostico sobre la identidad detectada.
+ *
+ * Ejecutar desde la Web App para comprobar que datos esta entregando Google en
+ * esa sesion concreta.
+ *
+ * @return {Object} Diagnostico de identidad.
+ */
+function diagnosticarLoginActual() {
+  const activeEmail = normalizeText(Session.getActiveUser().getEmail()).toLowerCase();
+  const effectiveEmail = normalizeText(Session.getEffectiveUser().getEmail()).toLowerCase();
+  const directoryProfile = getGoogleDirectoryProfile_(activeEmail);
+
+  return {
+    activeUserEmail: activeEmail,
+    effectiveUserEmail: effectiveEmail,
+    temporaryActiveUserKey: Session.getTemporaryActiveUserKey(),
+    directoryAvailable: directoryProfile.available,
+    directoryFullName: directoryProfile.fullName,
+    directoryPrimaryEmail: directoryProfile.primaryEmail,
+    directoryError: directoryProfile.error,
+    fallbackName: buildNameFromEmail_(activeEmail),
+    currentUser: getCurrentUser()
+  };
 }
 
 /**
@@ -122,16 +148,45 @@ function isAllowedDomain_(email) {
  * @private
  */
 function getGoogleDirectoryFullName_(email) {
+  return getGoogleDirectoryProfile_(email).fullName;
+}
+
+/**
+ * Obtiene el perfil basico del usuario desde Google Workspace Directory.
+ *
+ * @param {string} email Correo del usuario.
+ * @return {Object} Perfil de directorio o error controlado.
+ * @private
+ */
+function getGoogleDirectoryProfile_(email) {
   if (typeof AdminDirectory === 'undefined') {
-    return '';
+    return {
+      available: false,
+      fullName: '',
+      primaryEmail: '',
+      error: 'Servicio avanzado AdminDirectory no disponible.'
+    };
   }
 
   try {
-    const user = AdminDirectory.Users.get(email);
-    return normalizeText(user && user.name && user.name.fullName);
+    const user = AdminDirectory.Users.get(email, {
+      projection: 'basic'
+    });
+
+    return {
+      available: true,
+      fullName: normalizeText(user && user.name && user.name.fullName),
+      primaryEmail: normalizeText(user && user.primaryEmail).toLowerCase(),
+      error: ''
+    };
   } catch (error) {
     console.warn('No se ha podido obtener el nombre completo desde Google Directory', error);
-    return '';
+    return {
+      available: true,
+      fullName: '',
+      primaryEmail: '',
+      error: error && error.message ? error.message : String(error)
+    };
   }
 }
 
