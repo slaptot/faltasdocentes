@@ -137,7 +137,7 @@
         .then(function(payload) {
           google.script.run
             .withSuccessHandler(function(result) {
-              showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente.');
+              showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente. PDF generado y correos enviados.');
               elements.form.reset();
               elements.ausenciasBody.innerHTML = '';
               addAusenciaRow();

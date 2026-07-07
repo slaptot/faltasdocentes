@@ -42,11 +42,18 @@ function crearSolicitud(payload) {
     };
 
     appendSolicitud_(solicitud);
+    const pdfResult = generarDocumentoSolicitud(solicitud);
+    solicitud.DocumentoDriveId = pdfResult.documentoDriveId;
+    solicitud.PDFDriveId = pdfResult.pdfDriveId;
+    updateSolicitudDriveIds_(solicitud.ID, pdfResult);
+    notificarNuevaSolicitud(solicitud);
 
     return {
       ok: true,
       id: id,
       estado: solicitud.Estado,
+      pdfDriveId: solicitud.PDFDriveId,
+      pdfUrl: getDriveDownloadUrl(solicitud.PDFDriveId),
       justificanteDriveId: solicitud.JustificanteDriveId
     };
   } catch (error) {
@@ -220,6 +227,52 @@ function appendSolicitud_(solicitud) {
 }
 
 /**
+ * Actualiza los IDs de documento y PDF de una solicitud existente.
+ *
+ * @param {string} solicitudId ID de solicitud.
+ * @param {Object} driveIds IDs generados.
+ * @private
+ */
+function updateSolicitudDriveIds_(solicitudId, driveIds) {
+  const sheet = getOrCreateSheet_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES);
+  const rowIndex = findSolicitudRowIndex_(solicitudId);
+
+  if (!rowIndex) {
+    throw new Error('No se ha encontrado la solicitud ' + solicitudId + ' para actualizar PDF.');
+  }
+
+  sheet
+    .getRange(rowIndex, HEADERS.SOLICITUDES.indexOf('DocumentoDriveId') + 1)
+    .setValue(driveIds.documentoDriveId || '');
+  sheet
+    .getRange(rowIndex, HEADERS.SOLICITUDES.indexOf('PDFDriveId') + 1)
+    .setValue(driveIds.pdfDriveId || '');
+}
+
+/**
+ * Busca la fila real de una solicitud en la hoja.
+ *
+ * @param {string} solicitudId ID de solicitud.
+ * @return {number|null} Numero de fila o null.
+ * @private
+ */
+function findSolicitudRowIndex_(solicitudId) {
+  const sheet = getOrCreateSheet_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES);
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return null;
+  }
+
+  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  const index = ids.findIndex(function(row) {
+    return normalizeText(row[0]) === solicitudId;
+  });
+
+  return index === -1 ? null : index + 2;
+}
+
+/**
  * Agrupa ausencias y observaciones en una cadena legible hasta implementar PDF.
  *
  * @param {Object} data Datos validados.
@@ -227,13 +280,50 @@ function appendSolicitud_(solicitud) {
  * @private
  */
 function buildSolicitudObservaciones_(data) {
-  const ausenciasText = data.ausencias.map(function(ausencia) {
-    const tramosText = AUSENCIA_TRAMOS.map(function(tramo) {
-      return tramo + ':' + ausencia.tramos[tramo];
-    }).join(', ');
+  const serializedAusencias = JSON.stringify(data.ausencias);
 
-    return ausencia.fecha + ' [' + tramosText + ']';
-  }).join('\n');
+  return [
+    'Ausencias:',
+    serializedAusencias,
+    '',
+    'Observaciones:',
+    data.observaciones || '-'
+  ].join('\n');
+}
 
-  return ['Ausencias:', ausenciasText, '', 'Observaciones:', data.observaciones || '-'].join('\n');
+/**
+ * Extrae las ausencias estructuradas almacenadas en Observaciones.
+ *
+ * @param {string} observaciones Valor de la columna Observaciones.
+ * @return {Object[]} Ausencias.
+ */
+function extractAusenciasFromObservaciones_(observaciones) {
+  const text = String(observaciones || '');
+  const match = text.match(/Ausencias:\s*([\s\S]*?)\n\s*\nObservaciones:/);
+
+  if (!match) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(match[1]);
+    return Array.isArray(parsed) ? parsed.map(normalizeAusencia_) : [];
+  } catch (error) {
+    console.error('No se han podido leer las ausencias de la solicitud', error);
+    return [];
+  }
+}
+
+/**
+ * Extrae solo las observaciones visibles del profesor.
+ *
+ * @param {string} observaciones Valor de la columna Observaciones.
+ * @return {string} Observaciones visibles.
+ */
+function extractVisibleObservaciones_(observaciones) {
+  const text = String(observaciones || '');
+  const marker = '\n\nObservaciones:\n';
+  const index = text.indexOf(marker);
+
+  return index === -1 ? text : text.slice(index + marker.length);
 }

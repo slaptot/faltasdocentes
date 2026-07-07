@@ -102,3 +102,17 @@ function buildSafeFileName_(solicitudId, originalName, extension) {
 
   return solicitudId + '_' + safeBaseName + '.' + extension;
 }
+
+/**
+ * Guarda un blob PDF en la carpeta configurada.
+ *
+ * @param {Blob} blob PDF generado.
+ * @param {string} solicitudId ID de solicitud.
+ * @return {string} ID del archivo PDF.
+ */
+function guardarPdfSolicitud(blob, solicitudId) {
+  const folder = getConfiguredFolder_(CONFIG_KEYS.CARPETA_PDF);
+  const file = folder.createFile(blob.setName('Solicitud_' + solicitudId + '.pdf'));
+
+  return file.getId();
+}

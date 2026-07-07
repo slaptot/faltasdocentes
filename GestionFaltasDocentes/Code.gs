@@ -36,7 +36,7 @@ function getAppStatus() {
       autenticacion: 'COMPLETO',
       baseDatos: 'COMPLETO',
       formulario: 'COMPLETO',
-      pdf: 'PENDIENTE',
+      pdf: 'COMPLETO',
       administracion: 'PENDIENTE'
     }
   };
