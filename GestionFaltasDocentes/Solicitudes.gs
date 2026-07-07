@@ -68,7 +68,20 @@ function crearSolicitud(payload) {
  * @return {Object[]} Solicitudes propias.
  */
 function listarMisSolicitudes() {
-  notImplemented('Historial');
+  const user = getCurrentUser();
+
+  if (!user.authorized) {
+    throw new Error('No esta autorizado para utilizar esta aplicacion.');
+  }
+
+  return readSheetObjects_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES)
+    .filter(function(solicitud) {
+      return normalizeText(solicitud.Email).toLowerCase() === user.email;
+    })
+    .map(mapSolicitudForClient_)
+    .sort(function(a, b) {
+      return String(b.fechaCreacion || '').localeCompare(String(a.fechaCreacion || ''));
+    });
 }
 
 /**
@@ -90,6 +103,46 @@ function listarSolicitudesAdmin(filtros) {
  */
 function cambiarEstadoSolicitud(id, estado) {
   notImplemented('Administracion');
+}
+
+/**
+ * Marca una solicitud propia como invalida.
+ *
+ * @param {string} id ID de solicitud.
+ * @return {Object} Solicitud actualizada.
+ */
+function invalidarMiSolicitud(id) {
+  const user = getCurrentUser();
+
+  if (!user.authorized) {
+    throw new Error('No esta autorizado para utilizar esta aplicacion.');
+  }
+
+  const solicitudId = normalizeText(id);
+  const rowIndex = findSolicitudRowIndex_(solicitudId);
+
+  if (!rowIndex) {
+    throw new Error('No se ha encontrado la solicitud.');
+  }
+
+  const sheet = getOrCreateSheet_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES);
+  const rowValues = sheet.getRange(rowIndex, 1, 1, HEADERS.SOLICITUDES.length).getValues()[0];
+  const solicitud = rowToObject_(HEADERS.SOLICITUDES, rowValues);
+
+  if (normalizeText(solicitud.Email).toLowerCase() !== user.email) {
+    throw new Error('No puede modificar una solicitud de otro usuario.');
+  }
+
+  if (normalizeText(solicitud.Estado) === ESTADOS_SOLICITUD.INVALIDA) {
+    return mapSolicitudForClient_(solicitud);
+  }
+
+  sheet
+    .getRange(rowIndex, HEADERS.SOLICITUDES.indexOf('Estado') + 1)
+    .setValue(ESTADOS_SOLICITUD.INVALIDA);
+  solicitud.Estado = ESTADOS_SOLICITUD.INVALIDA;
+
+  return mapSolicitudForClient_(solicitud);
 }
 
 /**
@@ -282,6 +335,61 @@ function findSolicitudRowIndex_(solicitudId) {
   });
 
   return index === -1 ? null : index + 2;
+}
+
+/**
+ * Convierte una solicitud de hoja a objeto seguro para cliente.
+ *
+ * @param {Object} solicitud Solicitud de hoja.
+ * @return {Object} Solicitud para UI.
+ * @private
+ */
+function mapSolicitudForClient_(solicitud) {
+  const pdfDriveId = normalizeText(solicitud.PDFDriveId);
+
+  return {
+    id: normalizeText(solicitud.ID),
+    fecha: formatDateForClient_(solicitud.FechaSolicitud),
+    motivo: normalizeText(solicitud.Motivo),
+    estado: normalizeText(solicitud.Estado),
+    pdfDriveId: pdfDriveId,
+    pdfUrl: getDriveViewUrl(pdfDriveId),
+    fechaCreacion: formatSortableDate_(solicitud.FechaCreacion)
+  };
+}
+
+/**
+ * Formatea fecha para mostrar en cliente.
+ *
+ * @param {*} value Fecha.
+ * @return {string} Fecha formateada.
+ * @private
+ */
+function formatDateForClient_(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (isNaN(date.getTime())) {
+    return normalizeText(value);
+  }
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+}
+
+/**
+ * Formatea fecha para ordenar de forma estable.
+ *
+ * @param {*} value Fecha.
+ * @return {string} Fecha ISO aproximada.
+ * @private
+ */
+function formatSortableDate_(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (isNaN(date.getTime())) {
+    return normalizeText(value);
+  }
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
 }
 
 /**

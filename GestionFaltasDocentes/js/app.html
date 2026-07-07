@@ -25,6 +25,7 @@
       elements.adminCard = document.getElementById('admin-card');
       elements.menuView = document.getElementById('menu-view');
       elements.nuevaView = document.getElementById('view-nueva');
+      elements.historialView = document.getElementById('view-historial');
       elements.logoutButton = document.getElementById('logout-button');
       elements.loginAgainButton = document.getElementById('login-again-button');
 
@@ -132,6 +133,7 @@
     function showView(viewName) {
       if (viewName === 'nueva') {
         hide(elements.menuView);
+        hide(elements.historialView);
         show(elements.nuevaView);
 
         if (window.GestionFaltasDocentesNueva) {
@@ -140,7 +142,19 @@
         return;
       }
 
+      if (viewName === 'historial') {
+        hide(elements.menuView);
+        hide(elements.nuevaView);
+        show(elements.historialView);
+
+        if (window.GestionFaltasDocentesHistorial) {
+          window.GestionFaltasDocentesHistorial.load();
+        }
+        return;
+      }
+
       hide(elements.nuevaView);
+      hide(elements.historialView);
       show(elements.menuView);
     }
 

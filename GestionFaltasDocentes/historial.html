@@ -1,3 +1,40 @@
 <section id="view-historial" class="d-none">
-  <!-- Modulo Historial pendiente de implementacion. -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="h4 mb-1">Mis solicitudes</h2>
+      <p class="text-secondary mb-0">Historial personal y descarga de PDFs.</p>
+    </div>
+    <button class="btn btn-outline-secondary" type="button" data-view-target="menu">
+      <i class="bi bi-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <div class="app-loading-panel" id="historial-loading-state">
+    <div class="d-flex align-items-center gap-3">
+      <div class="spinner-border app-spinner" role="status" aria-hidden="true"></div>
+      <div>
+        <h3 class="h6 mb-1">Cargando historial</h3>
+        <p class="text-secondary mb-0">Recuperando sus solicitudes.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert d-none" id="historial-alert" role="alert"></div>
+
+  <div class="table-responsive d-none" id="historial-table-wrapper">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Fecha</th>
+          <th scope="col">Motivo</th>
+          <th scope="col">Estado</th>
+          <th scope="col">PDF</th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody id="historial-body"></tbody>
+    </table>
+  </div>
 </section>

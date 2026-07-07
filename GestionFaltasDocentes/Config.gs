@@ -27,7 +27,8 @@ const ROLES = Object.freeze({
 const ESTADOS_SOLICITUD = Object.freeze({
   PENDIENTE: 'PENDIENTE',
   ACEPTADA: 'ACEPTADA',
-  RECHAZADA: 'RECHAZADA'
+  RECHAZADA: 'RECHAZADA',
+  INVALIDA: 'INVALIDA'
 });
 
 const CONFIG_KEYS = Object.freeze({

@@ -1,6 +1,198 @@
 <script>
   /**
    * Cliente del modulo Historial.
-   * Pendiente de implementacion tras confirmacion del modulo Formulario/Base de datos.
    */
+  (function() {
+    const elements = {};
+
+    document.addEventListener('DOMContentLoaded', initHistorial);
+
+    /**
+     * Inicializa referencias de la vista.
+     */
+    function initHistorial() {
+      elements.loadingState = document.getElementById('historial-loading-state');
+      elements.alert = document.getElementById('historial-alert');
+      elements.tableWrapper = document.getElementById('historial-table-wrapper');
+      elements.body = document.getElementById('historial-body');
+    }
+
+    /**
+     * Carga solicitudes del usuario.
+     */
+    function load() {
+      showLoading();
+      google.script.run
+        .withSuccessHandler(renderSolicitudes)
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showAlert('danger', getErrorMessage(error));
+        })
+        .listarMisSolicitudes();
+    }
+
+    /**
+     * Renderiza el listado.
+     *
+     * @param {Object[]} solicitudes Solicitudes propias.
+     */
+    function renderSolicitudes(solicitudes) {
+      hideLoading();
+      hideAlert();
+      elements.body.innerHTML = '';
+
+      if (!solicitudes || !solicitudes.length) {
+        showAlert('info', 'No hay solicitudes registradas.');
+        return;
+      }
+
+      solicitudes.forEach(function(solicitud) {
+        elements.body.appendChild(buildRow(solicitud));
+      });
+
+      elements.tableWrapper.classList.remove('d-none');
+    }
+
+    /**
+     * Construye una fila de tabla.
+     *
+     * @param {Object} solicitud Solicitud.
+     * @return {HTMLTableRowElement} Fila.
+     */
+    function buildRow(solicitud) {
+      const row = document.createElement('tr');
+      const canInvalidate = solicitud.estado !== 'INVALIDA';
+      const pdfButton = solicitud.pdfUrl
+        ? '<a class="btn btn-outline-primary btn-sm" href="' + escapeAttribute(solicitud.pdfUrl) + '" target="_blank" rel="noopener"><i class="bi bi-download"></i> Descargar PDF</a>'
+        : '<span class="text-secondary">Sin PDF</span>';
+
+      row.innerHTML = [
+        '<td class="fw-semibold">' + escapeHtml(solicitud.id) + '</td>',
+        '<td>' + escapeHtml(solicitud.fecha) + '</td>',
+        '<td>' + escapeHtml(solicitud.motivo) + '</td>',
+        '<td><span class="badge ' + getEstadoBadgeClass(solicitud.estado) + '">' + escapeHtml(solicitud.estado) + '</span></td>',
+        '<td>' + pdfButton + '</td>',
+        '<td class="text-end"><button class="btn btn-outline-danger btn-sm" type="button" ' + (canInvalidate ? '' : 'disabled') + '><i class="bi bi-x-circle"></i> Invalidar</button></td>'
+      ].join('');
+
+      row.querySelector('button').addEventListener('click', function() {
+        invalidarSolicitud(solicitud.id);
+      });
+
+      return row;
+    }
+
+    /**
+     * Marca una solicitud como invalida.
+     *
+     * @param {string} id ID de solicitud.
+     */
+    function invalidarSolicitud(id) {
+      if (!window.confirm('La solicitud se marcara como invalida. Esta accion no elimina el PDF.')) {
+        return;
+      }
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function() {
+          load();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showAlert('danger', getErrorMessage(error));
+        })
+        .invalidarMiSolicitud(id);
+    }
+
+    /**
+     * Devuelve clase Bootstrap para estado.
+     *
+     * @param {string} estado Estado.
+     * @return {string} Clase CSS.
+     */
+    function getEstadoBadgeClass(estado) {
+      if (estado === 'INVALIDA' || estado === 'RECHAZADA') {
+        return 'text-bg-danger';
+      }
+
+      if (estado === 'ACEPTADA') {
+        return 'text-bg-success';
+      }
+
+      return 'text-bg-warning';
+    }
+
+    /**
+     * Muestra carga.
+     */
+    function showLoading() {
+      elements.loadingState.classList.remove('d-none');
+      elements.tableWrapper.classList.add('d-none');
+    }
+
+    /**
+     * Oculta carga.
+     */
+    function hideLoading() {
+      elements.loadingState.classList.add('d-none');
+    }
+
+    /**
+     * Muestra alerta.
+     *
+     * @param {string} type Tipo Bootstrap.
+     * @param {string} message Mensaje.
+     */
+    function showAlert(type, message) {
+      elements.alert.className = 'alert alert-' + type;
+      elements.alert.textContent = message;
+    }
+
+    /**
+     * Oculta alerta.
+     */
+    function hideAlert() {
+      elements.alert.className = 'alert d-none';
+      elements.alert.textContent = '';
+    }
+
+    /**
+     * Extrae mensaje de error.
+     *
+     * @param {Error} error Error.
+     * @return {string} Mensaje.
+     */
+    function getErrorMessage(error) {
+      return error && error.message ? error.message : 'No se ha podido cargar el historial.';
+    }
+
+    /**
+     * Escapa texto HTML.
+     *
+     * @param {string} value Valor.
+     * @return {string} Texto escapado.
+     */
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * Escapa atributos HTML.
+     *
+     * @param {string} value Valor.
+     * @return {string} Atributo escapado.
+     */
+    function escapeAttribute(value) {
+      return escapeHtml(value);
+    }
+
+    window.GestionFaltasDocentesHistorial = {
+      load: load
+    };
+  })();
 </script>
