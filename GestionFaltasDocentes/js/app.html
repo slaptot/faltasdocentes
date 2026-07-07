@@ -1,11 +1,109 @@
 <script>
   /**
-   * Cliente principal.
+   * Cliente principal de la aplicacion.
    *
-   * En esta fase solo comprueba que la Web App responde. La navegacion real se
-   * implementara junto con Autenticacion y Formulario.
+   * Gestiona el estado inicial de autenticacion. La navegacion funcional se
+   * implementara en los modulos siguientes.
    */
-  window.GestionFaltasDocentes = {
-    ready: true
-  };
+  (function() {
+    const elements = {};
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    /**
+     * Inicializa referencias del DOM y solicita el estado de sesion.
+     */
+    function init() {
+      elements.loadingState = document.getElementById('loading-state');
+      elements.unauthorizedState = document.getElementById('unauthorized-state');
+      elements.mainState = document.getElementById('main-state');
+      elements.unauthorizedEmail = document.getElementById('unauthorized-email');
+      elements.userName = document.getElementById('user-name');
+      elements.userDepartment = document.getElementById('user-department');
+      elements.userDepartmentWrapper = document.getElementById('user-department-wrapper');
+      elements.adminCard = document.getElementById('admin-card');
+
+      google.script.run
+        .withSuccessHandler(renderAuthState)
+        .withFailureHandler(renderAuthError)
+        .getAuthState();
+    }
+
+    /**
+     * Renderiza la pantalla adecuada segun la autorizacion del usuario.
+     *
+     * @param {Object} user Estado de autenticacion devuelto por Apps Script.
+     */
+    function renderAuthState(user) {
+      hide(elements.loadingState);
+
+      if (!user || !user.authorized) {
+        renderUnauthorized(user);
+        return;
+      }
+
+      elements.userName.textContent = user.nombre || user.email;
+
+      if (user.departamento) {
+        elements.userDepartment.textContent = user.departamento;
+        show(elements.userDepartmentWrapper);
+      }
+
+      if (!user.isAdmin) {
+        hide(elements.adminCard);
+      }
+
+      show(elements.mainState);
+    }
+
+    /**
+     * Muestra un fallo controlado de autenticacion.
+     *
+     * @param {Error} error Error de google.script.run.
+     */
+    function renderAuthError(error) {
+      hide(elements.loadingState);
+      renderUnauthorized({
+        message: 'No esta autorizado para utilizar esta aplicacion.',
+        error: error && error.message ? error.message : ''
+      });
+    }
+
+    /**
+     * Renderiza la pantalla de usuario no autorizado.
+     *
+     * @param {Object} user Estado no autorizado.
+     */
+    function renderUnauthorized(user) {
+      const detail = user && user.email ? 'Usuario detectado: ' + user.email : '';
+      elements.unauthorizedEmail.textContent = detail;
+      show(elements.unauthorizedState);
+    }
+
+    /**
+     * Muestra un elemento.
+     *
+     * @param {HTMLElement} element Elemento DOM.
+     */
+    function show(element) {
+      if (element) {
+        element.classList.remove('d-none');
+      }
+    }
+
+    /**
+     * Oculta un elemento.
+     *
+     * @param {HTMLElement} element Elemento DOM.
+     */
+    function hide(element) {
+      if (element) {
+        element.classList.add('d-none');
+      }
+    }
+
+    window.GestionFaltasDocentes = {
+      ready: true
+    };
+  })();
 </script>

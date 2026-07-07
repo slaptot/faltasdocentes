@@ -1,8 +1,7 @@
 /**
  * Punto de entrada Web App.
  *
- * En esta fase solo se define la estructura del proyecto. El control real de
- * autenticacion se implementara en el modulo Autenticacion.
+ * Este archivo renderiza HTML Service y expone APIs ligeras de aplicacion.
  */
 
 /**
@@ -33,6 +32,12 @@ function getAppStatus() {
     name: APP.NAME,
     center: APP.CENTER,
     version: APP.VERSION,
-    modules: ['Autenticacion', 'Base de datos', 'Formulario', 'PDF', 'Administracion']
+    modules: {
+      autenticacion: 'COMPLETO',
+      baseDatos: 'COMPLETO',
+      formulario: 'PENDIENTE',
+      pdf: 'PENDIENTE',
+      administracion: 'PENDIENTE'
+    }
   };
 }

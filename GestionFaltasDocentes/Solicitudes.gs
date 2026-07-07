@@ -1,7 +1,9 @@
 /**
  * Modulo Solicitudes.
  *
- * Pendiente de implementacion tras confirmacion. Responsabilidades:
+ * Pendiente de implementacion completa tras confirmacion del modulo Formulario.
+ *
+ * Responsabilidades:
  * - Crear y guardar solicitudes.
  * - Generar IDs con formato 2026-00001.
  * - Consultar historial propio y listado administrativo.
@@ -46,4 +48,26 @@ function listarSolicitudesAdmin(filtros) {
  */
 function cambiarEstadoSolicitud(id, estado) {
   notImplemented('Administracion');
+}
+
+/**
+ * Genera el siguiente ID de solicitud con formato ANO-00001.
+ *
+ * @return {string} Nuevo ID.
+ */
+function generarSiguienteSolicitudId() {
+  const yearPrefix = getSolicitudYearPrefix();
+  const solicitudes = readSheetObjects_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES);
+  const maxSequence = solicitudes.reduce(function(max, solicitud) {
+    const id = normalizeText(solicitud.ID);
+
+    if (id.indexOf(yearPrefix + '-') !== 0) {
+      return max;
+    }
+
+    const sequence = parseInt(id.split('-')[1], 10);
+    return isNaN(sequence) ? max : Math.max(max, sequence);
+  }, 0);
+
+  return yearPrefix + '-' + String(maxSequence + 1).padStart(5, '0');
 }
