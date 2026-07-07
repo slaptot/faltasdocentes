@@ -19,6 +19,7 @@
      */
     function initAdmin() {
       elements.form = document.getElementById('admin-filters-form');
+      elements.year = document.getElementById('admin-filter-year');
       elements.month = document.getElementById('admin-filter-month');
       elements.profesor = document.getElementById('admin-filter-profesor');
       elements.tipo = document.getElementById('admin-filter-tipo');
@@ -39,6 +40,7 @@
       elements.resolutionSummary = document.getElementById('admin-resolution-summary');
       elements.resolutionReasonLabel = document.getElementById('admin-resolution-reason-label');
       elements.resolutionReason = document.getElementById('admin-resolution-reason');
+      elements.year.value = String(new Date().getFullYear());
 
       elements.form.addEventListener('submit', function(event) {
         event.preventDefault();
@@ -46,6 +48,7 @@
       });
       elements.clearFilters.addEventListener('click', function() {
         elements.form.reset();
+        elements.year.value = String(new Date().getFullYear());
         load();
       });
       elements.exportCsv.addEventListener('click', exportCsv);
@@ -94,6 +97,7 @@
           showAlert('danger', getErrorMessage(error));
         })
         .listarSolicitudesAdmin({
+          anio: elements.year.value,
           mes: elements.month.value,
           profesor: elements.profesor.value,
           tipo: elements.tipo.value

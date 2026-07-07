@@ -11,15 +11,19 @@
   </div>
 
   <form class="row g-3 mb-4" id="admin-filters-form">
+    <div class="col-12 col-md-2">
+      <label class="form-label" for="admin-filter-year">Año</label>
+      <input class="form-control" id="admin-filter-year" type="number" min="2020" max="2100" step="1">
+    </div>
     <div class="col-12 col-md-3">
       <label class="form-label" for="admin-filter-month">Mes</label>
       <input class="form-control" id="admin-filter-month" type="month">
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
       <label class="form-label" for="admin-filter-profesor">Docente</label>
       <input class="form-control" id="admin-filter-profesor" type="search" placeholder="Nombre o correo">
     </div>
-    <div class="col-12 col-md-5">
+    <div class="col-12 col-md-4">
       <label class="form-label" for="admin-filter-tipo">Tipo de ausencia</label>
       <select class="form-select" id="admin-filter-tipo">
         <option value="">Todos los tipos</option>

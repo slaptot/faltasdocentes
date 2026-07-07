@@ -567,6 +567,7 @@ function normalizeAdminFilters_(filtros) {
   const data = filtros || {};
 
   return {
+    anio: normalizeText(data.anio),
     mes: normalizeText(data.mes),
     profesor: normalizeText(data.profesor).toLowerCase(),
     tipo: normalizeText(data.tipo).toLowerCase()
@@ -583,6 +584,10 @@ function normalizeAdminFilters_(filtros) {
  */
 function matchesAdminFilters_(solicitud, filtros) {
   if (filtros.mes && formatMonthFilter_(solicitud.FechaSolicitud) !== filtros.mes) {
+    return false;
+  }
+
+  if (!filtros.mes && filtros.anio && formatYearFilter_(solicitud.FechaSolicitud) !== filtros.anio) {
     return false;
   }
 
@@ -604,6 +609,23 @@ function matchesAdminFilters_(solicitud, filtros) {
   }
 
   return true;
+}
+
+/**
+ * Formatea una fecha como YYYY para filtro anual.
+ *
+ * @param {*} value Fecha.
+ * @return {string} Año normalizado.
+ * @private
+ */
+function formatYearFilter_(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy');
 }
 
 /**
