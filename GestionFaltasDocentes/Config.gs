@@ -8,7 +8,8 @@ const APP = Object.freeze({
   CENTER: 'IES Leonardo de Chabacier',
   LOCATION: 'Calatayud',
   VERSION: '0.4.0-pdf',
-  SPREADSHEET_ID: '1Po8Cf1UQdnNQP8Z1hSnWZTlaPz97HADuK_h_407pd0I'
+  SPREADSHEET_ID: '1Po8Cf1UQdnNQP8Z1hSnWZTlaPz97HADuK_h_407pd0I',
+  ALLOWED_EMAIL_DOMAIN: 'chabacier.es'
 });
 
 const SHEETS = Object.freeze({

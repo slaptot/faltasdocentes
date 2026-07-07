@@ -16,6 +16,11 @@
 function getCurrentUser() {
   try {
     const email = getActiveUserEmail_();
+
+    if (!isAllowedDomain_(email)) {
+      return buildUnauthorizedUser_(email);
+    }
+
     const profesor = findProfesorByEmail(email);
 
     if (!profesor) {
@@ -89,4 +94,21 @@ function buildUnauthorizedUser_(email) {
     email: email || '',
     message: 'No esta autorizado para utilizar esta aplicacion.'
   };
+}
+
+/**
+ * Comprueba que el correo pertenece al dominio corporativo permitido.
+ *
+ * @param {string} email Correo del usuario.
+ * @return {boolean} True si pertenece al dominio configurado.
+ * @private
+ */
+function isAllowedDomain_(email) {
+  const domain = normalizeText(APP.ALLOWED_EMAIL_DOMAIN).toLowerCase();
+
+  if (!domain) {
+    return true;
+  }
+
+  return normalizeText(email).toLowerCase().endsWith('@' + domain);
 }
