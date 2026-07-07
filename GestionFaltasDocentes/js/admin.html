@@ -5,7 +5,8 @@
   (function() {
     const state = {
       motivosLoaded: false,
-      solicitudes: []
+      solicitudes: [],
+      pendingResolution: null
     };
     const elements = {};
 
@@ -25,6 +26,11 @@
       elements.alert = document.getElementById('admin-alert');
       elements.tableWrapper = document.getElementById('admin-table-wrapper');
       elements.body = document.getElementById('admin-body');
+      elements.resolutionModal = document.getElementById('admin-resolution-modal');
+      elements.resolutionForm = document.getElementById('admin-resolution-form');
+      elements.resolutionTitle = document.getElementById('admin-resolution-title');
+      elements.resolutionSummary = document.getElementById('admin-resolution-summary');
+      elements.resolutionReason = document.getElementById('admin-resolution-reason');
 
       elements.form.addEventListener('submit', function(event) {
         event.preventDefault();
@@ -35,6 +41,7 @@
         load();
       });
       elements.exportCsv.addEventListener('click', exportCsv);
+      elements.resolutionForm.addEventListener('submit', submitResolution);
     }
 
     /**
@@ -135,13 +142,14 @@
         '<td><div>' + escapeHtml(solicitud.profesor) + '</div><div class="small text-secondary">' + escapeHtml(solicitud.email) + '</div></td>',
         '<td>' + escapeHtml(solicitud.motivo) + '</td>',
         '<td><span class="badge ' + getEstadoBadgeClass(solicitud.estado) + '">' + escapeHtml(solicitud.estado) + '</span></td>',
+        '<td class="small">' + formatMultiline(solicitud.razonResolucion) + '</td>',
         '<td>' + pdfButton + '</td>',
         '<td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-success" type="button" data-action="ACEPTADA"><i class="bi bi-check2"></i> Aceptar</button><button class="btn btn-outline-danger" type="button" data-action="RECHAZADA"><i class="bi bi-x-lg"></i> Rechazar</button></div></td>'
       ].join('');
 
       row.querySelectorAll('button[data-action]').forEach(function(button) {
         button.addEventListener('click', function() {
-          cambiarEstado(solicitud.id, button.dataset.action);
+          openResolutionModal(solicitud, button.dataset.action);
         });
       });
 
@@ -149,22 +157,68 @@
     }
 
     /**
+     * Abre el modal de resolucion.
+     *
+     * @param {Object} solicitud Solicitud.
+     * @param {string} estado Estado.
+     */
+    function openResolutionModal(solicitud, estado) {
+      state.pendingResolution = {
+        id: solicitud.id,
+        estado: estado
+      };
+      elements.resolutionTitle.textContent = estado === 'ACEPTADA' ? 'Aceptar solicitud' : 'Rechazar solicitud';
+      elements.resolutionSummary.textContent = solicitud.id + ' - ' + solicitud.profesor;
+      elements.resolutionReason.value = '';
+      bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).show();
+      elements.resolutionModal.addEventListener('shown.bs.modal', function focusReason() {
+        elements.resolutionModal.removeEventListener('shown.bs.modal', focusReason);
+        elements.resolutionReason.focus();
+      });
+    }
+
+    /**
+     * Guarda la resolucion indicada en el modal.
+     *
+     * @param {SubmitEvent} event Evento.
+     */
+    function submitResolution(event) {
+      event.preventDefault();
+
+      if (!state.pendingResolution) {
+        return;
+      }
+
+      const razon = elements.resolutionReason.value.trim();
+
+      if (!razon) {
+        elements.resolutionReason.reportValidity();
+        return;
+      }
+
+      cambiarEstado(state.pendingResolution.id, state.pendingResolution.estado, razon);
+    }
+
+    /**
      * Cambia estado de una solicitud.
      *
      * @param {string} id ID.
      * @param {string} estado Estado.
+     * @param {string} razon Razon de resolucion.
      */
-    function cambiarEstado(id, estado) {
+    function cambiarEstado(id, estado, razon) {
+      bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).hide();
       showLoading();
       google.script.run
         .withSuccessHandler(function() {
+          state.pendingResolution = null;
           load();
         })
         .withFailureHandler(function(error) {
           hideLoading();
           showAlert('danger', getErrorMessage(error));
         })
-        .cambiarEstadoSolicitud(id, estado);
+        .cambiarEstadoSolicitud(id, estado, razon);
     }
 
     /**
@@ -176,7 +230,7 @@
         return;
       }
 
-      const headers = ['ID', 'Fecha', 'Horario', 'Profesor', 'Email', 'Tipo', 'Estado', 'PDF'];
+      const headers = ['ID', 'Fecha', 'Horario', 'Profesor', 'Email', 'Tipo', 'Estado', 'Razon', 'PDF'];
       const rows = state.solicitudes.map(function(solicitud) {
         return [
           solicitud.id,
@@ -186,6 +240,7 @@
           solicitud.email,
           solicitud.motivo,
           solicitud.estado,
+          solicitud.razonResolucion,
           solicitud.pdfUrl
         ];
       });

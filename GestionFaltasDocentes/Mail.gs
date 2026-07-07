@@ -75,6 +75,7 @@ function notificarResolucionSolicitud(solicitud) {
   }
 
   const estado = normalizeText(solicitud.Estado);
+  const razon = normalizeText(solicitud.RazonResolucion);
   const pdfUrl = getDriveViewUrl(solicitud.PDFDriveId);
   const subject = 'Resolucion de solicitud ' + solicitud.ID + ': ' + estado;
   const body = [
@@ -83,6 +84,7 @@ function notificarResolucionSolicitud(solicitud) {
     'ID: ' + solicitud.ID,
     'Estado: ' + estado,
     'Motivo: ' + solicitud.Motivo,
+    'Razon: ' + (razon || '-'),
     '',
     'PDF: ' + pdfUrl
   ].join('\n');

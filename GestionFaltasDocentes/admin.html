@@ -63,11 +63,37 @@
           <th scope="col">Profesor</th>
           <th scope="col">Tipo</th>
           <th scope="col">Estado</th>
+          <th scope="col">Razon</th>
           <th scope="col">PDF</th>
           <th scope="col"></th>
         </tr>
       </thead>
       <tbody id="admin-body"></tbody>
     </table>
+  </div>
+
+  <div class="modal fade" id="admin-resolution-modal" tabindex="-1" aria-labelledby="admin-resolution-title" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="admin-resolution-form">
+          <div class="modal-header">
+            <h3 class="modal-title h5" id="admin-resolution-title">Resolver solicitud</h3>
+            <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-secondary mb-3" id="admin-resolution-summary"></p>
+            <label class="form-label" for="admin-resolution-reason">Razon de la resolucion</label>
+            <textarea class="form-control" id="admin-resolution-reason" rows="4" required></textarea>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-check2"></i>
+              Guardar resolucion
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </section>

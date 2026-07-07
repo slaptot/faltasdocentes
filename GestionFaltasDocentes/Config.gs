@@ -66,7 +66,8 @@ const HEADERS = Object.freeze({
     'DocumentoDriveId',
     'PDFDriveId',
     'JustificanteDriveId',
-    'FechaCreacion'
+    'FechaCreacion',
+    'RazonResolucion'
   ],
   MOTIVOS: ['Motivo'],
   CONFIGURACION: ['Valor', 'Inicio']

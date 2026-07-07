@@ -114,9 +114,10 @@ function listarSolicitudesAdmin(filtros) {
  *
  * @param {string} id ID de solicitud.
  * @param {string} estado Nuevo estado.
+ * @param {string=} razon Razon indicada por Administracion.
  * @return {Object} Solicitud actualizada.
  */
-function cambiarEstadoSolicitud(id, estado) {
+function cambiarEstadoSolicitud(id, estado, razon) {
   const user = getCurrentUser();
 
   if (!user.authorized || !user.isAdmin) {
@@ -125,6 +126,7 @@ function cambiarEstadoSolicitud(id, estado) {
 
   const solicitudId = normalizeText(id);
   const normalizedEstado = normalizeText(estado).toUpperCase();
+  const razonResolucion = normalizeText(razon);
   const allowedEstados = [
     ESTADOS_SOLICITUD.PENDIENTE,
     ESTADOS_SOLICITUD.ACEPTADA,
@@ -134,6 +136,10 @@ function cambiarEstadoSolicitud(id, estado) {
 
   if (allowedEstados.indexOf(normalizedEstado) === -1) {
     throw new Error('Estado no valido.');
+  }
+
+  if ((normalizedEstado === ESTADOS_SOLICITUD.ACEPTADA || normalizedEstado === ESTADOS_SOLICITUD.RECHAZADA) && !razonResolucion) {
+    throw new Error('Debe indicar la razon de la resolucion.');
   }
 
   const rowIndex = findSolicitudRowIndex_(solicitudId);
@@ -146,6 +152,9 @@ function cambiarEstadoSolicitud(id, estado) {
   sheet
     .getRange(rowIndex, HEADERS.SOLICITUDES.indexOf('Estado') + 1)
     .setValue(normalizedEstado);
+  sheet
+    .getRange(rowIndex, HEADERS.SOLICITUDES.indexOf('RazonResolucion') + 1)
+    .setValue(razonResolucion);
 
   const rowValues = sheet.getRange(rowIndex, 1, 1, HEADERS.SOLICITUDES.length).getValues()[0];
   const solicitud = rowToObject_(HEADERS.SOLICITUDES, rowValues);
@@ -429,6 +438,7 @@ function mapSolicitudForAdminClient_(solicitud) {
   base.departamento = normalizeText(solicitud.Departamento);
   base.justificanteUrl = getDriveViewUrl(solicitud.JustificanteDriveId);
   base.horario = formatAusenciasForAdmin_(solicitud.Observaciones);
+  base.razonResolucion = normalizeText(solicitud.RazonResolucion);
 
   return base;
 }
