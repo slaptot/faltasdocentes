@@ -37,19 +37,29 @@ function guardarJustificante(filePayload, solicitudId) {
 }
 
 /**
- * Devuelve una URL de descarga para un archivo de Drive.
+ * Devuelve una URL de visualizacion para un archivo de Drive.
  *
  * @param {string} fileId ID de archivo.
- * @return {string} URL de descarga.
+ * @return {string} URL de visualizacion.
  */
 function getDriveDownloadUrl(fileId) {
+  return getDriveViewUrl(fileId);
+}
+
+/**
+ * Devuelve una URL de visualizacion para un archivo de Drive.
+ *
+ * @param {string} fileId ID de archivo.
+ * @return {string} URL de visualizacion.
+ */
+function getDriveViewUrl(fileId) {
   const id = normalizeText(fileId);
 
   if (!id) {
     return '';
   }
 
-  return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(id);
+  return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view?usp=drivesdk';
 }
 
 /**
@@ -114,5 +124,22 @@ function guardarPdfSolicitud(blob, solicitudId) {
   const folder = getConfiguredFolder_(CONFIG_KEYS.CARPETA_PDF);
   const file = folder.createFile(blob.setName('Solicitud_' + solicitudId + '.pdf'));
 
+  applyPdfSharing_(file);
+
   return file.getId();
+}
+
+/**
+ * Aplica permisos de lectura al PDF generado sin bloquear el tramite si la
+ * politica del dominio no permite compartir por enlace.
+ *
+ * @param {File} file Archivo PDF.
+ * @private
+ */
+function applyPdfSharing_(file) {
+  try {
+    file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (error) {
+    console.warn('No se han podido aplicar permisos de dominio al PDF', error);
+  }
 }
