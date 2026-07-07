@@ -50,14 +50,14 @@
           <span class="badge text-bg-light align-self-start">v<?= version ?></span>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-3" id="menu-view">
           <div class="col-12 col-md-4">
             <article class="card app-card h-100">
               <div class="card-body">
                 <i class="bi bi-file-earmark-plus app-card-icon"></i>
                 <h2 class="h5 mt-3">Nueva solicitud</h2>
                 <p class="text-secondary">Formulario de declaracion de falta docente.</p>
-                <button class="btn btn-primary" disabled>Pendiente</button>
+                <button class="btn btn-primary" type="button" data-view-target="nueva">Abrir</button>
               </div>
             </article>
           </div>
@@ -82,10 +82,13 @@
             </article>
           </div>
         </div>
+
+        <?!= include('nueva'); ?>
       </section>
     </main>
 
     <?!= include('js/app'); ?>
+    <?!= include('js/nueva'); ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

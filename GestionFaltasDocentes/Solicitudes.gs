@@ -1,8 +1,6 @@
 /**
  * Modulo Solicitudes.
  *
- * Pendiente de implementacion completa tras confirmacion del modulo Formulario.
- *
  * Responsabilidades:
  * - Crear y guardar solicitudes.
  * - Generar IDs con formato 2026-00001.
@@ -17,7 +15,51 @@
  * @return {Object} Solicitud creada.
  */
 function crearSolicitud(payload) {
-  notImplemented('Formulario');
+  try {
+    const user = getCurrentUser();
+
+    if (!user.authorized) {
+      throw new Error('No esta autorizado para utilizar esta aplicacion.');
+    }
+
+    const data = validateSolicitudPayload_(payload);
+    const id = generarSiguienteSolicitudId();
+    const justificanteDriveId = guardarJustificante(data.justificante, id);
+    const now = new Date();
+    const solicitud = {
+      ID: id,
+      FechaSolicitud: data.fechaSolicitud,
+      Profesor: user.nombre,
+      Email: user.email,
+      Departamento: user.departamento,
+      Motivo: data.motivo,
+      Observaciones: buildSolicitudObservaciones_(data),
+      Estado: ESTADOS_SOLICITUD.PENDIENTE,
+      DocumentoDriveId: '',
+      PDFDriveId: '',
+      JustificanteDriveId: justificanteDriveId || '',
+      FechaCreacion: now
+    };
+
+    appendSolicitud_(solicitud);
+    const pdfResult = generarDocumentoSolicitud(solicitud);
+    solicitud.DocumentoDriveId = pdfResult.documentoDriveId;
+    solicitud.PDFDriveId = pdfResult.pdfDriveId;
+    updateSolicitudDriveIds_(solicitud.ID, pdfResult);
+    notificarNuevaSolicitud(solicitud);
+
+    return {
+      ok: true,
+      id: id,
+      estado: solicitud.Estado,
+      pdfDriveId: solicitud.PDFDriveId,
+      pdfUrl: getDriveDownloadUrl(solicitud.PDFDriveId),
+      justificanteDriveId: solicitud.JustificanteDriveId
+    };
+  } catch (error) {
+    console.error('Error creando solicitud', error);
+    throw error;
+  }
 }
 
 /**
@@ -70,4 +112,218 @@ function generarSiguienteSolicitudId() {
   }, 0);
 
   return yearPrefix + '-' + String(maxSequence + 1).padStart(5, '0');
+}
+
+/**
+ * Devuelve los datos necesarios para renderizar el formulario.
+ *
+ * @return {Object} Datos iniciales del formulario.
+ */
+function getNuevaSolicitudData() {
+  const user = getCurrentUser();
+
+  if (!user.authorized) {
+    throw new Error('No esta autorizado para utilizar esta aplicacion.');
+  }
+
+  return {
+    profesor: {
+      nombre: user.nombre,
+      email: user.email,
+      departamento: user.departamento
+    },
+    motivos: listarMotivos()
+  };
+}
+
+/**
+ * Valida el payload enviado desde el formulario.
+ *
+ * @param {Object} payload Datos del cliente.
+ * @return {Object} Datos normalizados.
+ * @private
+ */
+function validateSolicitudPayload_(payload) {
+  const data = payload || {};
+  const motivo = normalizeText(data.motivo);
+  const observaciones = normalizeText(data.observaciones);
+  const ausencias = Array.isArray(data.ausencias) ? data.ausencias : [];
+  const motivos = listarMotivos();
+
+  if (!motivo) {
+    throw new Error('Debe seleccionar un motivo.');
+  }
+
+  if (motivos.indexOf(motivo) === -1) {
+    throw new Error('El motivo seleccionado no existe en la hoja Motivos.');
+  }
+
+  const normalizedAusencias = ausencias
+    .map(normalizeAusencia_)
+    .filter(function(ausencia) {
+      return Boolean(ausencia.fecha);
+    });
+
+  if (!normalizedAusencias.length) {
+    throw new Error('Debe indicar al menos un dia de ausencia.');
+  }
+
+  normalizedAusencias.forEach(function(ausencia) {
+    const hasTramo = AUSENCIA_TRAMOS.some(function(tramo) {
+      return ausencia.tramos[tramo] !== '-';
+    });
+
+    if (!hasTramo) {
+      throw new Error('Cada dia de ausencia debe tener al menos un tramo marcado.');
+    }
+  });
+
+  return {
+    fechaSolicitud: new Date(),
+    motivo: motivo,
+    observaciones: observaciones,
+    ausencias: normalizedAusencias,
+    justificante: data.justificante || null
+  };
+}
+
+const AUSENCIA_TRAMOS = Object.freeze(['1', '2', 'R1', '3', '4', 'R2', '5', '6']);
+const AUSENCIA_VALORES = Object.freeze(['-', 'L', 'C']);
+
+/**
+ * Normaliza una fila de ausencia.
+ *
+ * @param {Object} ausencia Datos de una ausencia.
+ * @return {Object} Ausencia normalizada.
+ * @private
+ */
+function normalizeAusencia_(ausencia) {
+  const data = ausencia || {};
+  const tramos = data.tramos || {};
+
+  return {
+    fecha: normalizeText(data.fecha),
+    tramos: AUSENCIA_TRAMOS.reduce(function(result, tramo) {
+      const value = normalizeText(tramos[tramo]) || '-';
+      result[tramo] = AUSENCIA_VALORES.indexOf(value) === -1 ? '-' : value;
+      return result;
+    }, {})
+  };
+}
+
+/**
+ * Persiste una solicitud en la hoja Solicitudes.
+ *
+ * @param {Object} solicitud Solicitud normalizada.
+ * @private
+ */
+function appendSolicitud_(solicitud) {
+  const sheet = getOrCreateSheet_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES);
+  const row = HEADERS.SOLICITUDES.map(function(header) {
+    return solicitud[header] || '';
+  });
+
+  sheet.appendRow(row);
+}
+
+/**
+ * Actualiza los IDs de documento y PDF de una solicitud existente.
+ *
+ * @param {string} solicitudId ID de solicitud.
+ * @param {Object} driveIds IDs generados.
+ * @private
+ */
+function updateSolicitudDriveIds_(solicitudId, driveIds) {
+  const sheet = getOrCreateSheet_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES);
+  const rowIndex = findSolicitudRowIndex_(solicitudId);
+
+  if (!rowIndex) {
+    throw new Error('No se ha encontrado la solicitud ' + solicitudId + ' para actualizar PDF.');
+  }
+
+  sheet
+    .getRange(rowIndex, HEADERS.SOLICITUDES.indexOf('DocumentoDriveId') + 1)
+    .setValue(driveIds.documentoDriveId || '');
+  sheet
+    .getRange(rowIndex, HEADERS.SOLICITUDES.indexOf('PDFDriveId') + 1)
+    .setValue(driveIds.pdfDriveId || '');
+}
+
+/**
+ * Busca la fila real de una solicitud en la hoja.
+ *
+ * @param {string} solicitudId ID de solicitud.
+ * @return {number|null} Numero de fila o null.
+ * @private
+ */
+function findSolicitudRowIndex_(solicitudId) {
+  const sheet = getOrCreateSheet_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES);
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return null;
+  }
+
+  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  const index = ids.findIndex(function(row) {
+    return normalizeText(row[0]) === solicitudId;
+  });
+
+  return index === -1 ? null : index + 2;
+}
+
+/**
+ * Agrupa ausencias y observaciones en una cadena legible hasta implementar PDF.
+ *
+ * @param {Object} data Datos validados.
+ * @return {string} Observaciones enriquecidas.
+ * @private
+ */
+function buildSolicitudObservaciones_(data) {
+  const serializedAusencias = JSON.stringify(data.ausencias);
+
+  return [
+    'Ausencias:',
+    serializedAusencias,
+    '',
+    'Observaciones:',
+    data.observaciones || '-'
+  ].join('\n');
+}
+
+/**
+ * Extrae las ausencias estructuradas almacenadas en Observaciones.
+ *
+ * @param {string} observaciones Valor de la columna Observaciones.
+ * @return {Object[]} Ausencias.
+ */
+function extractAusenciasFromObservaciones_(observaciones) {
+  const text = String(observaciones || '');
+  const match = text.match(/Ausencias:\s*([\s\S]*?)\n\s*\nObservaciones:/);
+
+  if (!match) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(match[1]);
+    return Array.isArray(parsed) ? parsed.map(normalizeAusencia_) : [];
+  } catch (error) {
+    console.error('No se han podido leer las ausencias de la solicitud', error);
+    return [];
+  }
+}
+
+/**
+ * Extrae solo las observaciones visibles del profesor.
+ *
+ * @param {string} observaciones Valor de la columna Observaciones.
+ * @return {string} Observaciones visibles.
+ */
+function extractVisibleObservaciones_(observaciones) {
+  const text = String(observaciones || '');
+  const marker = '\n\nObservaciones:\n';
+  const index = text.indexOf(marker);
+
+  return index === -1 ? text : text.slice(index + marker.length);
 }

@@ -1,3 +1,87 @@
 <section id="view-nueva" class="d-none">
-  <!-- Modulo Formulario pendiente de implementacion. -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="h4 mb-1">Nueva solicitud</h2>
+      <p class="text-secondary mb-0">Declaracion de falta de asistencia docente.</p>
+    </div>
+    <button class="btn btn-outline-secondary" type="button" data-view-target="menu">
+      <i class="bi bi-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <form id="nueva-solicitud-form" novalidate>
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="form-profesor">Profesor</label>
+        <input class="form-control" id="form-profesor" type="text" readonly>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="form-departamento">Departamento</label>
+        <input class="form-control" id="form-departamento" type="text" readonly>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="form-email">Correo</label>
+        <input class="form-control" id="form-email" type="email" readonly>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
+      <h3 class="h5 mb-0">Ausencias</h3>
+      <button class="btn btn-outline-primary btn-sm" id="add-ausencia-row" type="button">
+        <i class="bi bi-plus-lg"></i>
+        Anadir dia
+      </button>
+    </div>
+
+    <div class="table-responsive mb-4">
+      <table class="table table-sm align-middle app-form-table">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">1a</th>
+            <th scope="col">2a</th>
+            <th scope="col">R1</th>
+            <th scope="col">3a</th>
+            <th scope="col">4a</th>
+            <th scope="col">R2</th>
+            <th scope="col">5a</th>
+            <th scope="col">6a</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody id="ausencias-body"></tbody>
+      </table>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-lg-6">
+        <label class="form-label" for="motivo-search">Buscar motivo</label>
+        <input class="form-control" id="motivo-search" type="search" autocomplete="off">
+      </div>
+      <div class="col-12 col-lg-6">
+        <label class="form-label" for="motivo-select">Motivo</label>
+        <select class="form-select" id="motivo-select" required>
+          <option value="">Seleccione un motivo</option>
+        </select>
+      </div>
+      <div class="col-12 col-lg-6">
+        <label class="form-label" for="justificante-file">Documentacion</label>
+        <input class="form-control" id="justificante-file" type="file" accept="application/pdf,image/jpeg,image/png">
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="observaciones">Observaciones</label>
+        <textarea class="form-control" id="observaciones" rows="4"></textarea>
+      </div>
+    </div>
+
+    <div class="alert d-none" id="form-alert" role="alert"></div>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-primary" id="submit-solicitud" type="submit">
+        <i class="bi bi-file-earmark-check"></i>
+        Generar solicitud
+      </button>
+    </div>
+  </form>
 </section>

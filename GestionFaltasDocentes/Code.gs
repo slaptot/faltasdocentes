@@ -35,8 +35,8 @@ function getAppStatus() {
     modules: {
       autenticacion: 'COMPLETO',
       baseDatos: 'COMPLETO',
-      formulario: 'PENDIENTE',
-      pdf: 'PENDIENTE',
+      formulario: 'COMPLETO',
+      pdf: 'COMPLETO',
       administracion: 'PENDIENTE'
     }
   };

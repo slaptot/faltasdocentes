@@ -7,7 +7,7 @@ const APP = Object.freeze({
   NAME: 'Gestion de Faltas Docentes',
   CENTER: 'IES Leonardo de Chabacier',
   LOCATION: 'Calatayud',
-  VERSION: '0.3.0-database',
+  VERSION: '0.4.0-pdf',
   SPREADSHEET_ID: '1Po8Cf1UQdnNQP8Z1hSnWZTlaPz97HADuK_h_407pd0I'
 });
 
@@ -35,6 +35,16 @@ const CONFIG_KEYS = Object.freeze({
   PLANTILLA_DOCS: 'PlantillaDocs',
   CORREO_DIRECCION: 'CorreoDireccion',
   CURSO_ESCOLAR: 'CursoEscolar'
+});
+
+const PDF_MARKERS = Object.freeze({
+  PROFESOR: '<<PROFESOR>>',
+  EMAIL: '<<EMAIL>>',
+  DEPARTAMENTO: '<<DEPARTAMENTO>>',
+  MOTIVO: '<<MOTIVO>>',
+  OBSERVACIONES: '<<OBSERVACIONES>>',
+  FECHA: '<<FECHA>>',
+  TABLA: '<<TABLA>>'
 });
 
 const HEADERS = Object.freeze({
