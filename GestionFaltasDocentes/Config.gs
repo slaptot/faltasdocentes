@@ -4,7 +4,7 @@
  * Este archivo define constantes compartidas por todos los modulos.
  */
 const APP = Object.freeze({
-  NAME: 'Gestion de Faltas Docentes',
+  NAME: 'Gestión de Faltas Docentes',
   CENTER: 'IES Leonardo de Chabacier',
   LOCATION: 'Calatayud',
   VERSION: '0.4.0-pdf',

@@ -49,7 +49,7 @@ function getCurrentUser() {
     return {
       authorized: false,
       email: '',
-      message: 'No esta autorizado para utilizar esta aplicacion.',
+      message: 'No está autorizado para utilizar esta aplicación.',
       error: 'No se ha podido comprobar el usuario.'
     };
   }
@@ -101,7 +101,7 @@ function buildUnauthorizedUser_(email) {
   return {
     authorized: false,
     email: email || '',
-    message: 'No esta autorizado para utilizar esta aplicacion.'
+    message: 'No está autorizado para utilizar esta aplicación.'
   };
 }
 

@@ -2,13 +2,13 @@
  * Modulo Mail.
  *
  * Responsabilidades:
- * - Enviar notificacion a Direccion.
+ * - Enviar notificación a Dirección.
  * - Enviar copia de confirmacion al profesor.
  * - Incluir enlaces a PDF cuando proceda.
  */
 
 /**
- * Notifica una nueva solicitud a Direccion y al profesor.
+ * Notifica una nueva solicitud a Dirección y al profesor.
  *
  * @param {Object} solicitud Solicitud creada.
  */
@@ -18,7 +18,7 @@ function notificarNuevaSolicitud(solicitud) {
   const correoProfesor = normalizeText(solicitud.Email);
 
   if (!correoDireccion) {
-    throw new Error('Falta configurar CorreoDireccion en la hoja Configuracion.');
+    throw new Error('Falta configurar CorreoDireccion en la hoja Configuración.');
   }
 
   if (!correoProfesor) {
@@ -73,7 +73,7 @@ function notificarNuevaSolicitud(solicitud) {
 }
 
 /**
- * Notifica al profesor la resolucion administrativa de su solicitud.
+ * Notifica al profesor la resolución administrativa de su solicitud.
  *
  * @param {Object} solicitud Solicitud actualizada.
  */
@@ -87,14 +87,14 @@ function notificarResolucionSolicitud(solicitud) {
   const estado = normalizeText(solicitud.Estado);
   const razon = normalizeText(solicitud.RazonResolucion);
   const pdfUrl = getDriveViewUrl(solicitud.PDFDriveId);
-  const subject = 'Resolucion de solicitud ' + solicitud.ID + ': ' + estado;
+  const subject = 'Resolución de solicitud ' + solicitud.ID + ': ' + estado;
   const body = [
     'Se ha actualizado el estado de su solicitud de falta docente.',
     '',
     'ID: ' + solicitud.ID,
     'Estado: ' + estado,
     'Motivo: ' + solicitud.Motivo,
-    'Razon: ' + (razon || '-'),
+    'Razón: ' + (razon || '-'),
     '',
     'PDF: ' + pdfUrl
   ].join('\n');
@@ -108,7 +108,7 @@ function notificarResolucionSolicitud(solicitud) {
 }
 
 /**
- * Envia un correo de prueba a Direccion y al usuario actual.
+ * Envía un correo de prueba a Dirección y al usuario actual.
  *
  * Ejecutar manualmente desde Apps Script para verificar permisos y cuota de
  * envio antes de probar el formulario completo.
@@ -121,7 +121,7 @@ function probarEnvioCorreo() {
   const user = getCurrentUser();
 
   if (!correoDireccion) {
-    throw new Error('Falta configurar CorreoDireccion en la hoja Configuracion.');
+    throw new Error('Falta configurar CorreoDireccion en la hoja Configuración.');
   }
 
   if (!user.authorized || !user.email) {
@@ -130,9 +130,9 @@ function probarEnvioCorreo() {
 
   const subject = 'Prueba de correo - ' + APP.NAME;
   const body = [
-    'Prueba de envio correcta.',
+    'Prueba de envío correcta.',
     '',
-    'Aplicacion: ' + APP.NAME,
+    'Aplicación: ' + APP.NAME,
     'Usuario: ' + user.nombre + ' <' + user.email + '>',
     'Fecha: ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss')
   ].join('\n');

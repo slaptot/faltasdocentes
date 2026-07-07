@@ -19,7 +19,7 @@ function crearSolicitud(payload) {
     const user = getCurrentUser();
 
     if (!user.authorized) {
-      throw new Error('No esta autorizado para utilizar esta aplicacion.');
+      throw new Error('No está autorizado para utilizar esta aplicación.');
     }
 
     const data = validateSolicitudPayload_(payload);
@@ -73,7 +73,7 @@ function listarMisSolicitudes() {
   const user = getCurrentUser();
 
   if (!user.authorized) {
-    throw new Error('No esta autorizado para utilizar esta aplicacion.');
+    throw new Error('No está autorizado para utilizar esta aplicación.');
   }
 
   return readSheetObjects_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES)
@@ -96,7 +96,7 @@ function listarSolicitudesAdmin(filtros) {
   const user = getCurrentUser();
 
   if (!user.authorized || !user.isAdmin) {
-    throw new Error('No tiene permisos de administracion.');
+    throw new Error('No tiene permisos de administración.');
   }
 
   const normalizedFilters = normalizeAdminFilters_(filtros);
@@ -121,7 +121,7 @@ function evaluarAvisoSolicitud(payload) {
   const user = getCurrentUser();
 
   if (!user.authorized) {
-    throw new Error('No esta autorizado para utilizar esta aplicacion.');
+    throw new Error('No está autorizado para utilizar esta aplicación.');
   }
 
   const data = validateSolicitudPayload_(payload);
@@ -140,7 +140,7 @@ function cambiarEstadoSolicitud(id, estado, razon) {
   const user = getCurrentUser();
 
   if (!user.authorized || !user.isAdmin) {
-    throw new Error('No tiene permisos de administracion.');
+    throw new Error('No tiene permisos de administración.');
   }
 
   const solicitudId = normalizeText(id);
@@ -154,7 +154,7 @@ function cambiarEstadoSolicitud(id, estado, razon) {
   ];
 
   if (allowedEstados.indexOf(normalizedEstado) === -1) {
-    throw new Error('Estado no valido.');
+    throw new Error('Estado no válido.');
   }
 
   if (normalizedEstado === ESTADOS_SOLICITUD.RECHAZADA && !razonResolucion) {
@@ -199,7 +199,7 @@ function invalidarMiSolicitud(id) {
   const user = getCurrentUser();
 
   if (!user.authorized) {
-    throw new Error('No esta autorizado para utilizar esta aplicacion.');
+    throw new Error('No está autorizado para utilizar esta aplicación.');
   }
 
   const solicitudId = normalizeText(id);
@@ -260,7 +260,7 @@ function getNuevaSolicitudData() {
   const user = getCurrentUser();
 
   if (!user.authorized) {
-    throw new Error('No esta autorizado para utilizar esta aplicacion.');
+    throw new Error('No está autorizado para utilizar esta aplicación.');
   }
 
   return {
@@ -307,7 +307,7 @@ function validateSolicitudPayload_(payload) {
 
   normalizedAusencias.forEach(function(ausencia) {
     if (!ausencia.diaEntero && (!ausencia.horaSalida || !ausencia.horaVuelta)) {
-      throw new Error('Indique hora de salida y hora de vuelta, o marque dia entero.');
+      throw new Error('Indique hora de salida y hora de vuelta, o marque día entero.');
     }
   });
 
@@ -356,7 +356,7 @@ function buildAvisoLibreDisposicion_(email, data) {
     diasNuevaSolicitud: diasNuevaSolicitud,
     total: total,
     limite: limite,
-    message: 'Este profesor ya tiene ' + diasPrevios + ' dia(s) registrados de Libre disposicion por conciliacion. Con esta solicitud llegaria a ' + total + ' dia(s), por encima del maximo de ' + limite + '. Es posible que la solicitud no sea correcta.'
+    message: 'Este profesor ya tiene ' + diasPrevios + ' día(s) registrados de Libre disposición por conciliación. Con esta solicitud llegaría a ' + total + ' día(s), por encima del máximo de ' + limite + '. Es posible que la solicitud no sea correcta.'
   };
 }
 
@@ -545,7 +545,7 @@ function formatAusenciasForAdmin_(observaciones) {
 
   return ausencias.map(function(ausencia) {
     const fecha = formatDateForClient_(ausencia.fecha);
-    const horario = ausencia.diaEntero ? 'Dia entero' : ausencia.horaSalida + ' - ' + ausencia.horaVuelta;
+    const horario = ausencia.diaEntero ? 'Día entero' : ausencia.horaSalida + ' - ' + ausencia.horaVuelta;
     return fecha + ': ' + horario;
   }).join('\n');
 }

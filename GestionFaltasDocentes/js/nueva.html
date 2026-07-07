@@ -76,10 +76,10 @@
       const row = document.createElement('tr');
       row.innerHTML = [
         '<td><input class="form-control form-control-sm ausencia-fecha" type="date" required></td>',
-        '<td class="text-center"><input class="form-check-input ausencia-dia-entero" type="checkbox" aria-label="Dia entero"></td>',
+        '<td class="text-center"><input class="form-check-input ausencia-dia-entero" type="checkbox" aria-label="Día entero"></td>',
         '<td><input class="form-control form-control-sm ausencia-salida" type="time"></td>',
         '<td><input class="form-control form-control-sm ausencia-vuelta" type="time"></td>',
-        '<td><button class="btn btn-outline-danger btn-sm" type="button" title="Eliminar dia"><i class="bi bi-trash"></i></button></td>'
+        '<td><button class="btn btn-outline-danger btn-sm" type="button" title="Eliminar día"><i class="bi bi-trash"></i></button></td>'
       ].join('');
 
       row.querySelector('.ausencia-dia-entero').addEventListener('change', function(event) {
@@ -322,7 +322,7 @@
      * @return {string} Mensaje.
      */
     function getErrorMessage(error) {
-      return error && error.message ? error.message : 'No se ha podido completar la operacion.';
+      return error && error.message ? error.message : 'No se ha podido completar la operación.';
     }
 
     /**

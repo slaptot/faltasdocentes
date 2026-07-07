@@ -173,8 +173,8 @@
       elements.resolutionReason.value = '';
       elements.resolutionReason.required = estado === 'RECHAZADA';
       elements.resolutionReasonLabel.textContent = estado === 'RECHAZADA'
-        ? 'Razon del rechazo'
-        : 'Observacion interna opcional';
+        ? 'Razón del rechazo'
+        : 'Observación interna opcional';
       bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).show();
       elements.resolutionModal.addEventListener('shown.bs.modal', function focusReason() {
         elements.resolutionModal.removeEventListener('shown.bs.modal', focusReason);
@@ -235,7 +235,7 @@
         return;
       }
 
-      const headers = ['ID', 'Fecha', 'Horario', 'Profesor', 'Email', 'Tipo', 'Estado', 'Razon', 'PDF'];
+      const headers = ['ID', 'Fecha', 'Horario', 'Profesor', 'Email', 'Tipo', 'Estado', 'Razón', 'PDF'];
       const rows = state.solicitudes.map(function(solicitud) {
         return [
           solicitud.id,
@@ -343,7 +343,7 @@
      * @return {string} Mensaje.
      */
     function getErrorMessage(error) {
-      return error && error.message ? error.message : 'No se ha podido cargar administracion.';
+      return error && error.message ? error.message : 'No se ha podido cargar administración.';
     }
 
     /**

@@ -197,7 +197,7 @@ function buildAusenciasTableRows_(solicitud) {
   const rows = ausencias.map(function(ausencia) {
     return [
       formatDateForPdf_(ausencia.fecha),
-      ausencia.diaEntero ? 'Dia entero' : 'Parcial',
+      ausencia.diaEntero ? 'Día entero' : 'Parcial',
       ausencia.diaEntero ? '-' : ausencia.horaSalida + ' - ' + ausencia.horaVuelta
     ];
   });
