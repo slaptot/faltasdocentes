@@ -10,7 +10,17 @@
     </button>
   </div>
 
-  <form id="nueva-solicitud-form" novalidate>
+  <div class="app-loading-panel" id="nueva-loading-state">
+    <div class="d-flex align-items-center gap-3">
+      <div class="spinner-border app-spinner" role="status" aria-hidden="true"></div>
+      <div>
+        <h3 class="h6 mb-1">Cargando datos del formulario</h3>
+        <p class="text-secondary mb-0">Recuperando usuario, departamento y motivos oficiales.</p>
+      </div>
+    </div>
+  </div>
+
+  <form class="d-none" id="nueva-solicitud-form" novalidate>
     <div class="row g-3 mb-4">
       <div class="col-12 col-md-4">
         <label class="form-label" for="form-profesor">Profesor</label>

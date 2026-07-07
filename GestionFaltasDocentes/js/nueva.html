@@ -15,6 +15,7 @@
      * Inicializa el formulario cuando el DOM esta disponible.
      */
     function initNuevaSolicitud() {
+      elements.loadingState = document.getElementById('nueva-loading-state');
       elements.form = document.getElementById('nueva-solicitud-form');
       elements.profesor = document.getElementById('form-profesor');
       elements.departamento = document.getElementById('form-departamento');
@@ -42,9 +43,11 @@
      */
     function load() {
       if (state.loaded) {
+        showForm();
         return;
       }
 
+      showLoading();
       google.script.run
         .withSuccessHandler(function(data) {
           state.loaded = true;
@@ -54,8 +57,10 @@
           state.motivos = data.motivos || [];
           renderMotivos();
           addAusenciaRow();
+          showForm();
         })
         .withFailureHandler(function(error) {
+          showForm();
           showAlert('danger', getErrorMessage(error));
         })
         .getNuevaSolicitudData();
@@ -275,6 +280,35 @@
      */
     function normalizeClientText(value) {
       return String(value || '').trim();
+    }
+
+    /**
+     * Muestra el indicador de carga y oculta el formulario.
+     */
+    function showLoading() {
+      elements.loadingState.classList.remove('d-none');
+      elements.form.classList.add('d-none');
+      setFormDisabled(true);
+    }
+
+    /**
+     * Muestra el formulario y oculta el indicador de carga.
+     */
+    function showForm() {
+      elements.loadingState.classList.add('d-none');
+      elements.form.classList.remove('d-none');
+      setFormDisabled(false);
+    }
+
+    /**
+     * Deshabilita o habilita los controles del formulario.
+     *
+     * @param {boolean} disabled Estado deshabilitado.
+     */
+    function setFormDisabled(disabled) {
+      elements.form.querySelectorAll('input, select, textarea, button').forEach(function(control) {
+        control.disabled = disabled;
+      });
     }
 
     window.GestionFaltasDocentesNueva = {
