@@ -4,7 +4,7 @@
  * Responsabilidades:
  * - Obtener el correo con Session.getActiveUser().getEmail().
  * - Validar que el correo pertenece al dominio corporativo.
- * - Usar la hoja Profesores para identificar administradores.
+ * - Usar Configuracion/CorreoDireccion para identificar administradores.
  * - Exponer el perfil autorizado al cliente.
  * - Ocultar Administracion si el Rol no es ADMIN.
  */
@@ -23,6 +23,7 @@ function getCurrentUser() {
     }
 
     const profesor = findProfesorByEmail(email);
+    const isAdmin = isAdminEmail_(email);
 
     if (profesor) {
       return {
@@ -30,8 +31,8 @@ function getCurrentUser() {
         email: profesor.email,
         nombre: profesor.nombre || buildNameFromEmail_(email),
         departamento: profesor.departamento,
-        rol: profesor.rol,
-        isAdmin: profesor.rol === ROLES.ADMIN
+        rol: isAdmin ? ROLES.ADMIN : ROLES.PROFESOR,
+        isAdmin: isAdmin
       };
     }
 
@@ -40,8 +41,8 @@ function getCurrentUser() {
       email: email,
       nombre: buildNameFromEmail_(email),
       departamento: '',
-      rol: ROLES.PROFESOR,
-      isAdmin: false
+      rol: isAdmin ? ROLES.ADMIN : ROLES.PROFESOR,
+      isAdmin: isAdmin
     };
   } catch (error) {
     console.error('Error obteniendo usuario actual', error);
@@ -140,4 +141,25 @@ function buildNameFromEmail_(email) {
     .replace(/\b\w/g, function(letter) {
       return letter.toUpperCase();
     });
+}
+
+/**
+ * Comprueba si el correo esta incluido en Configuracion/CorreoDireccion.
+ *
+ * Admite varios correos separados por coma.
+ *
+ * @param {string} email Correo del usuario.
+ * @return {boolean} True si tiene acceso a Administracion.
+ * @private
+ */
+function isAdminEmail_(email) {
+  const config = getConfiguracion();
+  const adminEmails = normalizeText(config[CONFIG_KEYS.CORREO_DIRECCION])
+    .split(',')
+    .map(function(adminEmail) {
+      return normalizeText(adminEmail).toLowerCase();
+    })
+    .filter(Boolean);
+
+  return adminEmails.indexOf(normalizeText(email).toLowerCase()) !== -1;
 }
