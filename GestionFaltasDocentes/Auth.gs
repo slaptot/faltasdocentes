@@ -3,7 +3,8 @@
  *
  * Responsabilidades:
  * - Obtener el correo con Session.getActiveUser().getEmail().
- * - Validar el correo contra la hoja Profesores.
+ * - Validar que el correo pertenece al dominio corporativo.
+ * - Usar la hoja Profesores para identificar administradores.
  * - Exponer el perfil autorizado al cliente.
  * - Ocultar Administracion si el Rol no es ADMIN.
  */
@@ -23,17 +24,24 @@ function getCurrentUser() {
 
     const profesor = findProfesorByEmail(email);
 
-    if (!profesor) {
-      return buildUnauthorizedUser_(email);
+    if (profesor) {
+      return {
+        authorized: true,
+        email: profesor.email,
+        nombre: profesor.nombre || buildNameFromEmail_(email),
+        departamento: profesor.departamento,
+        rol: profesor.rol,
+        isAdmin: profesor.rol === ROLES.ADMIN
+      };
     }
 
     return {
       authorized: true,
-      email: profesor.email,
-      nombre: profesor.nombre,
-      departamento: profesor.departamento,
-      rol: profesor.rol,
-      isAdmin: profesor.rol === ROLES.ADMIN
+      email: email,
+      nombre: buildNameFromEmail_(email),
+      departamento: '',
+      rol: ROLES.PROFESOR,
+      isAdmin: false
     };
   } catch (error) {
     console.error('Error obteniendo usuario actual', error);
@@ -111,4 +119,25 @@ function isAllowedDomain_(email) {
   }
 
   return normalizeText(email).toLowerCase().endsWith('@' + domain);
+}
+
+/**
+ * Crea un nombre legible a partir del correo cuando no hay ficha interna.
+ *
+ * @param {string} email Correo del usuario.
+ * @return {string} Nombre aproximado.
+ * @private
+ */
+function buildNameFromEmail_(email) {
+  const localPart = normalizeText(email).split('@')[0];
+
+  if (!localPart) {
+    return email;
+  }
+
+  return localPart
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, function(letter) {
+      return letter.toUpperCase();
+    });
 }
