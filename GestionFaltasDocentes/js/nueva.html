@@ -5,7 +5,11 @@
   (function() {
     const state = {
       loaded: false,
-      motivos: []
+      motivos: [],
+      profesor: {
+        nombre: '',
+        email: ''
+      }
     };
     const elements = {};
 
@@ -42,6 +46,7 @@
      */
     function load() {
       if (state.loaded) {
+        resetFormForNewRequest();
         showForm();
         return;
       }
@@ -50,11 +55,11 @@
       google.script.run
         .withSuccessHandler(function(data) {
           state.loaded = true;
-          elements.profesor.value = data.profesor.nombre || '';
-          elements.email.value = data.profesor.email || '';
+          state.profesor.nombre = data.profesor.nombre || '';
+          state.profesor.email = data.profesor.email || '';
           state.motivos = data.motivos || [];
           renderMotivos();
-          addAusenciaRow();
+          resetFormForNewRequest();
           showForm();
         })
         .withFailureHandler(function(error) {
@@ -181,9 +186,7 @@
       google.script.run
         .withSuccessHandler(function(result) {
           showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente. PDF generado y correos enviados.');
-          elements.form.reset();
-          elements.ausenciasBody.innerHTML = '';
-          addAusenciaRow();
+          resetFormForNewRequest({keepAlert: true});
           setSubmitting(false);
         })
         .withFailureHandler(function(error) {
@@ -271,6 +274,26 @@
       elements.submit.innerHTML = submitting
         ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Guardando'
         : '<i class="bi bi-file-earmark-check"></i> Generar solicitud';
+    }
+
+    /**
+     * Limpia el formulario para una solicitud nueva manteniendo datos de login.
+     *
+     * @param {Object=} options Opciones de limpieza.
+     */
+    function resetFormForNewRequest(options) {
+      const keepAlert = options && options.keepAlert === true;
+
+      elements.form.reset();
+      elements.profesor.value = state.profesor.nombre;
+      elements.email.value = state.profesor.email;
+      elements.ausenciasBody.innerHTML = '';
+      addAusenciaRow();
+      renderMotivos();
+
+      if (!keepAlert) {
+        hideAlert();
+      }
     }
 
     /**
