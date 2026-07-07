@@ -16,6 +16,7 @@
     function init() {
       elements.loadingState = document.getElementById('loading-state');
       elements.unauthorizedState = document.getElementById('unauthorized-state');
+      elements.loggedOutState = document.getElementById('logged-out-state');
       elements.mainState = document.getElementById('main-state');
       elements.unauthorizedEmail = document.getElementById('unauthorized-email');
       elements.userName = document.getElementById('user-name');
@@ -24,6 +25,11 @@
       elements.adminCard = document.getElementById('admin-card');
       elements.menuView = document.getElementById('menu-view');
       elements.nuevaView = document.getElementById('view-nueva');
+      elements.logoutButton = document.getElementById('logout-button');
+      elements.loginAgainButton = document.getElementById('login-again-button');
+
+      elements.logoutButton.addEventListener('click', logout);
+      elements.loginAgainButton.addEventListener('click', reloadApp);
 
       google.script.run
         .withSuccessHandler(renderAuthState)
@@ -56,6 +62,7 @@
       }
 
       bindNavigation();
+      show(elements.logoutButton);
       show(elements.mainState);
     }
 
@@ -80,6 +87,7 @@
     function renderUnauthorized(user) {
       const detail = user && user.email ? 'Usuario detectado: ' + user.email : '';
       elements.unauthorizedEmail.textContent = detail;
+      hide(elements.logoutButton);
       show(elements.unauthorizedState);
     }
 
@@ -136,9 +144,28 @@
       show(elements.menuView);
     }
 
+    /**
+     * Cierra la sesion local de la aplicacion.
+     */
+    function logout() {
+      hide(elements.mainState);
+      hide(elements.unauthorizedState);
+      hide(elements.loadingState);
+      hide(elements.logoutButton);
+      show(elements.loggedOutState);
+    }
+
+    /**
+     * Recarga la aplicacion para volver a comprobar la cuenta Google activa.
+     */
+    function reloadApp() {
+      window.top.location.reload();
+    }
+
     window.GestionFaltasDocentes = {
       ready: true,
-      showView: showView
+      showView: showView,
+      logout: logout
     };
   })();
 </script>
