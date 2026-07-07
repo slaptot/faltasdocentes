@@ -27,7 +27,7 @@ function notificarNuevaSolicitud(solicitud) {
 
   const pdfUrl = getDriveDownloadUrl(solicitud.PDFDriveId);
   const subject = 'Nueva solicitud de falta docente ' + solicitud.ID;
-  const direccionBody = [
+  const direccionLines = [
     'Se ha registrado una nueva solicitud de falta docente.',
     '',
     'ID: ' + solicitud.ID,
@@ -37,7 +37,17 @@ function notificarNuevaSolicitud(solicitud) {
     'Estado: ' + solicitud.Estado,
     '',
     'PDF: ' + pdfUrl
-  ].join('\n');
+  ];
+
+  if (solicitud.AvisoLimite && solicitud.AvisoLimite.warning) {
+    direccionLines.push(
+      '',
+      'AVISO:',
+      solicitud.AvisoLimite.message
+    );
+  }
+
+  const direccionBody = direccionLines.join('\n');
   const profesorBody = [
     'Su solicitud de falta docente se ha registrado correctamente.',
     '',

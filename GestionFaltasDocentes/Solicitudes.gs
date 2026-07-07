@@ -23,6 +23,7 @@ function crearSolicitud(payload) {
     }
 
     const data = validateSolicitudPayload_(payload);
+    const avisoLimite = buildAvisoLibreDisposicion_(user.email, data);
     const id = generarSiguienteSolicitudId();
     const justificanteDriveId = guardarJustificante(data.justificante, id);
     const now = new Date();
@@ -40,6 +41,7 @@ function crearSolicitud(payload) {
       JustificanteDriveId: justificanteDriveId || '',
       FechaCreacion: now
     };
+    solicitud.AvisoLimite = avisoLimite;
 
     appendSolicitud_(solicitud);
     const pdfResult = generarDocumentoSolicitud(solicitud);
