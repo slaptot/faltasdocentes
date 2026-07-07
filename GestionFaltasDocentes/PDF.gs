@@ -112,7 +112,7 @@ function replaceTextMarkers_(body, solicitud) {
   replacements[PDF_MARKERS.OBSERVACIONES] = observaciones || '-';
   replacements[PDF_MARKERS.FECHA] = formatDateForPdf_(solicitud.FechaSolicitud || new Date());
   replacements[PDF_MARKERS.FECHA_DOCUMENTO] = formatLongDateForPdf_(solicitud.FechaSolicitud || new Date());
-  replacements[PDF_MARKERS.DOCUMENTO_ID] = solicitud.JustificanteDriveId || '-';
+  replacements[PDF_MARKERS.DOCUMENTO_ID] = getDriveViewUrl(solicitud.JustificanteDriveId) || '-';
 
   Object.keys(replacements).forEach(function(marker) {
     body.replaceText(escapeForReplaceText_(marker), sanitizeDocumentText_(replacements[marker]));
