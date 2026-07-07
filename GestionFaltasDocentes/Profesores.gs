@@ -1,11 +1,8 @@
 /**
  * Modulo Profesores.
  *
- * Implementacion minima necesaria para Autenticacion. La creacion completa de
- * todas las hojas se abordara en el modulo Base de datos.
- *
- * Responsabilidades cubiertas aqui:
- * - Crear la hoja Profesores si no existe, con sus cabeceras oficiales.
+ * Responsabilidades:
+ * - Crear o actualizar profesores.
  * - Buscar profesores por email.
  * - Mantener columnas Email, Nombre, Departamento, Rol y Activo.
  */
@@ -46,99 +43,83 @@ function listProfesoresActivos() {
 }
 
 /**
- * Abre el Spreadsheet principal de la aplicacion.
+ * Crea o actualiza un profesor por correo electronico.
  *
- * @return {Spreadsheet} Spreadsheet configurado.
- * @private
+ * @param {Object} profesor Datos del profesor.
+ * @return {Object} Profesor normalizado.
  */
-function getDatabase_() {
-  return SpreadsheetApp.openById(APP.SPREADSHEET_ID);
+function upsertProfesor(profesor) {
+  const normalizedProfesor = normalizeProfesor_(profesor);
+
+  if (!normalizedProfesor.email) {
+    throw new Error('El email del profesor es obligatorio.');
+  }
+
+  const sheet = getProfesoresSheet_();
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow >= 2) {
+    const emails = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    const existingIndex = emails.findIndex(function(row) {
+      return normalizeText(row[0]).toLowerCase() === normalizedProfesor.email;
+    });
+
+    if (existingIndex !== -1) {
+      sheet.getRange(existingIndex + 2, 1, 1, HEADERS.PROFESORES.length).setValues([
+        profesorToRow_(normalizedProfesor)
+      ]);
+      return normalizedProfesor;
+    }
+  }
+
+  sheet.appendRow(profesorToRow_(normalizedProfesor));
+  return normalizedProfesor;
 }
 
 /**
- * Devuelve la hoja Profesores, creandola con cabeceras si no existe.
+ * Devuelve la hoja Profesores preparada.
  *
  * @return {Sheet} Hoja Profesores.
  * @private
  */
 function getProfesoresSheet_() {
-  const spreadsheet = getDatabase_();
-  let sheet = spreadsheet.getSheetByName(SHEETS.PROFESORES);
-
-  if (!sheet) {
-    sheet = spreadsheet.insertSheet(SHEETS.PROFESORES);
-    sheet.getRange(1, 1, 1, HEADERS.PROFESORES.length).setValues([HEADERS.PROFESORES]);
-    sheet.setFrozenRows(1);
-  }
-
-  ensureProfesoresHeaders_(sheet);
-  return sheet;
+  return getOrCreateSheet_(SHEETS.PROFESORES, HEADERS.PROFESORES);
 }
 
 /**
- * Asegura que la hoja Profesores tenga las cabeceras esperadas.
+ * Normaliza un profesor recibido.
  *
- * @param {Sheet} sheet Hoja Profesores.
+ * @param {Object} profesor Datos de entrada.
+ * @return {Object} Profesor normalizado.
  * @private
  */
-function ensureProfesoresHeaders_(sheet) {
-  const expectedHeaders = HEADERS.PROFESORES;
-  const currentHeaders = sheet
-    .getRange(1, 1, 1, expectedHeaders.length)
-    .getValues()[0]
-    .map(normalizeText);
+function normalizeProfesor_(profesor) {
+  const data = profesor || {};
 
-  const hasExpectedHeaders = expectedHeaders.every(function(header, index) {
-    return currentHeaders[index] === header;
-  });
-
-  if (!hasExpectedHeaders) {
-    sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
-    sheet.setFrozenRows(1);
-  }
+  return {
+    email: normalizeText(data.email).toLowerCase(),
+    nombre: normalizeText(data.nombre),
+    departamento: normalizeText(data.departamento),
+    rol: normalizeRole_(data.rol),
+    activo: parseActiveValue_(data.activo)
+  };
 }
 
 /**
- * Lee profesores desde Google Sheets como objetos normalizados.
+ * Convierte un profesor normalizado en fila de hoja.
  *
- * @return {Object[]} Profesores normalizados.
+ * @param {Object} profesor Profesor normalizado.
+ * @return {Array} Fila para Google Sheets.
  * @private
  */
-function readProfesores_() {
-  const sheet = getProfesoresSheet_();
-  const lastRow = sheet.getLastRow();
-
-  if (lastRow < 2) {
-    return [];
-  }
-
-  const values = sheet.getRange(2, 1, lastRow - 1, HEADERS.PROFESORES.length).getValues();
-
-  return values
-    .map(function(row) {
-      return {
-        email: normalizeText(row[0]).toLowerCase(),
-        nombre: normalizeText(row[1]),
-        departamento: normalizeText(row[2]),
-        rol: normalizeRole_(row[3]),
-        activo: parseActiveValue_(row[4])
-      };
-    })
-    .filter(function(profesor) {
-      return Boolean(profesor.email);
-    });
-}
-
-/**
- * Normaliza el rol del profesor.
- *
- * @param {string} value Valor de rol.
- * @return {string} Rol normalizado.
- * @private
- */
-function normalizeRole_(value) {
-  const role = normalizeText(value).toUpperCase();
-  return role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.PROFESOR;
+function profesorToRow_(profesor) {
+  return [
+    profesor.email,
+    profesor.nombre,
+    profesor.departamento,
+    profesor.rol,
+    profesor.activo
+  ];
 }
 
 /**
@@ -155,4 +136,38 @@ function parseActiveValue_(value) {
 
   const text = normalizeText(value).toLowerCase();
   return ['true', 'si', 's\u00ed', 's', '1', 'activo', 'x'].indexOf(text) !== -1;
+}
+
+/**
+ * Lee profesores desde Google Sheets como objetos normalizados.
+ *
+ * @return {Object[]} Profesores normalizados.
+ * @private
+ */
+function readProfesores_() {
+  return readSheetObjects_(SHEETS.PROFESORES, HEADERS.PROFESORES)
+    .map(function(row) {
+      return normalizeProfesor_({
+        email: row.Email,
+        nombre: row.Nombre,
+        departamento: row.Departamento,
+        rol: row.Rol,
+        activo: row.Activo
+      });
+    })
+    .filter(function(profesor) {
+      return Boolean(profesor.email);
+    });
+}
+
+/**
+ * Normaliza el rol del profesor.
+ *
+ * @param {string} value Valor de rol.
+ * @return {string} Rol normalizado.
+ * @private
+ */
+function normalizeRole_(value) {
+  const role = normalizeText(value).toUpperCase();
+  return role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.PROFESOR;
 }

@@ -34,7 +34,7 @@ function getAppStatus() {
     version: APP.VERSION,
     modules: {
       autenticacion: 'COMPLETO',
-      baseDatos: 'PENDIENTE',
+      baseDatos: 'COMPLETO',
       formulario: 'PENDIENTE',
       pdf: 'PENDIENTE',
       administracion: 'PENDIENTE'

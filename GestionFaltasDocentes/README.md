@@ -41,4 +41,4 @@ Estructura inicial creada. No se ha implementado ningun modulo funcional todavia
 
 ## Siguiente paso
 
-Confirmar el modulo `Autenticacion` para implementarlo completo antes de pasar a `Base de datos`.
+Confirmar el modulo `Formulario` para implementarlo completo antes de pasar a `PDF`.
