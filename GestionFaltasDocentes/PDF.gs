@@ -23,7 +23,7 @@ function generarDocumentoSolicitud(solicitud) {
   }
 
   const pdfFolder = getConfiguredFolder_(CONFIG_KEYS.CARPETA_PDF);
-  const templateFile = DriveApp.getFileById(templateId);
+  const templateFile = getGoogleDocsTemplateFile_(templateId);
   const documentFile = templateFile.makeCopy('Solicitud_' + solicitud.ID, pdfFolder);
   const documentId = documentFile.getId();
   const document = DocumentApp.openById(documentId);
@@ -43,6 +43,55 @@ function generarDocumentoSolicitud(solicitud) {
     documentoDriveId: documentId,
     pdfDriveId: pdfDriveId
   };
+}
+
+/**
+ * Comprueba que PlantillaDocs apunte a un documento nativo de Google Docs.
+ *
+ * Ejecutar manualmente desde Apps Script si falla la generacion de PDF.
+ *
+ * @return {Object} Datos de diagnostico de la plantilla.
+ */
+function probarPlantillaDocs() {
+  const config = getConfiguracion();
+  const templateId = normalizeText(config[CONFIG_KEYS.PLANTILLA_DOCS]);
+
+  if (!templateId) {
+    throw new Error('Falta configurar PlantillaDocs en la hoja Configuracion.');
+  }
+
+  const templateFile = getGoogleDocsTemplateFile_(templateId);
+  const document = DocumentApp.openById(templateFile.getId());
+
+  return {
+    ok: true,
+    id: templateFile.getId(),
+    name: templateFile.getName(),
+    mimeType: templateFile.getMimeType(),
+    bodyLength: document.getBody().getText().length
+  };
+}
+
+/**
+ * Devuelve la plantilla, verificando que sea Google Docs nativo.
+ *
+ * @param {string} templateId ID configurado en PlantillaDocs.
+ * @return {File} Archivo de plantilla.
+ * @private
+ */
+function getGoogleDocsTemplateFile_(templateId) {
+  const templateFile = DriveApp.getFileById(templateId);
+  const mimeType = templateFile.getMimeType();
+
+  if (mimeType !== MimeType.GOOGLE_DOCS) {
+    throw new Error(
+      'PlantillaDocs debe ser un documento nativo de Google Docs. ' +
+      'El archivo configurado es "' + templateFile.getName() + '" con tipo "' + mimeType + '". ' +
+      'Abra el DOCX con Google Docs, conviertalo/guardelo como Google Docs y ponga ese ID en Configuracion.'
+    );
+  }
+
+  return templateFile;
 }
 
 /**
