@@ -4,7 +4,7 @@
  * Responsabilidades:
  * - Obtener el correo con Session.getActiveUser().getEmail().
  * - Validar que el correo pertenece al dominio corporativo.
- * - Usar Configuracion/CorreoDireccion para identificar administradores.
+ * - Usar Configuracion/CorreosAdmin para identificar administradores.
  * - Exponer el perfil autorizado al cliente.
  * - Ocultar Administracion si el Rol no es ADMIN.
  */
@@ -144,7 +144,7 @@ function buildNameFromEmail_(email) {
 }
 
 /**
- * Comprueba si el correo esta incluido en Configuracion/CorreoDireccion.
+ * Comprueba si el correo esta incluido en Configuracion/CorreosAdmin.
  *
  * Admite varios correos separados por coma.
  *
@@ -154,7 +154,7 @@ function buildNameFromEmail_(email) {
  */
 function isAdminEmail_(email) {
   const config = getConfiguracion();
-  const adminEmails = normalizeText(config[CONFIG_KEYS.CORREO_DIRECCION])
+  const adminEmails = normalizeText(config[CONFIG_KEYS.CORREOS_ADMIN])
     .split(',')
     .map(function(adminEmail) {
       return normalizeText(adminEmail).toLowerCase();
