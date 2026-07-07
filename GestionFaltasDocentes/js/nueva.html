@@ -18,7 +18,6 @@
       elements.loadingState = document.getElementById('nueva-loading-state');
       elements.form = document.getElementById('nueva-solicitud-form');
       elements.profesor = document.getElementById('form-profesor');
-      elements.departamento = document.getElementById('form-departamento');
       elements.email = document.getElementById('form-email');
       elements.ausenciasBody = document.getElementById('ausencias-body');
       elements.addAusenciaRow = document.getElementById('add-ausencia-row');
@@ -52,7 +51,6 @@
         .withSuccessHandler(function(data) {
           state.loaded = true;
           elements.profesor.value = data.profesor.nombre || '';
-          elements.departamento.value = data.profesor.departamento || '';
           elements.email.value = data.profesor.email || '';
           state.motivos = data.motivos || [];
           renderMotivos();
