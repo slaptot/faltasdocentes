@@ -51,6 +51,22 @@ function inicializarBaseDatos(adminProfesor) {
 }
 
 /**
+ * Inicializa la base de datos y crea el primer administrador del centro.
+ *
+ * Ejecutar manualmente una vez desde el editor de Apps Script tras vincular el
+ * proyecto al Spreadsheet configurado.
+ *
+ * @return {Object} Resultado de inicializacion.
+ */
+function inicializarBaseDatosConAdminInicial() {
+  return inicializarBaseDatos({
+    email: 'amunozf@chabacier.es',
+    nombre: 'Alberto Muñoz Fuertes',
+    departamento: 'Jefatura'
+  });
+}
+
+/**
  * Abre el Spreadsheet principal de la aplicacion.
  *
  * @return {Spreadsheet} Spreadsheet configurado.
