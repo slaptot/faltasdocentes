@@ -19,9 +19,7 @@
       elements.loggedOutState = document.getElementById('logged-out-state');
       elements.mainState = document.getElementById('main-state');
       elements.unauthorizedEmail = document.getElementById('unauthorized-email');
-      elements.userName = document.getElementById('user-name');
-      elements.userDepartment = document.getElementById('user-department');
-      elements.userDepartmentWrapper = document.getElementById('user-department-wrapper');
+      elements.headerUserEmail = document.getElementById('header-user-email');
       elements.adminCard = document.getElementById('admin-card');
       elements.menuView = document.getElementById('menu-view');
       elements.nuevaView = document.getElementById('view-nueva');
@@ -52,15 +50,7 @@
         return;
       }
 
-      elements.userName.textContent = user.nombre || user.email;
-
-      if (user.departamento) {
-        elements.userDepartment.textContent = user.departamento;
-        show(elements.userDepartmentWrapper);
-      } else {
-        elements.userDepartment.textContent = '';
-        hide(elements.userDepartmentWrapper);
-      }
+      elements.headerUserEmail.textContent = user.email || '';
 
       if (!user.isAdmin) {
         hide(elements.adminCard);
