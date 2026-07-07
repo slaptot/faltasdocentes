@@ -141,24 +141,56 @@
 
       buildPayload()
         .then(function(payload) {
-          google.script.run
-            .withSuccessHandler(function(result) {
-              showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente. PDF generado y correos enviados.');
-              elements.form.reset();
-              elements.ausenciasBody.innerHTML = '';
-              addAusenciaRow();
-              setSubmitting(false);
-            })
-            .withFailureHandler(function(error) {
-              showAlert('danger', getErrorMessage(error));
-              setSubmitting(false);
-            })
-            .crearSolicitud(payload);
+          revisarAvisosAntesDeGuardar(payload);
         })
         .catch(function(error) {
           showAlert('danger', error.message);
           setSubmitting(false);
         });
+    }
+
+    /**
+     * Revisa avisos no bloqueantes antes de crear la solicitud.
+     *
+     * @param {Object} payload Datos del formulario.
+     */
+    function revisarAvisosAntesDeGuardar(payload) {
+      google.script.run
+        .withSuccessHandler(function(aviso) {
+          if (aviso && aviso.warning && !window.confirm(aviso.message + '\n\n¿Desea continuar de todos modos?')) {
+            setSubmitting(false);
+            showAlert('warning', aviso.message);
+            return;
+          }
+
+          guardarSolicitud(payload);
+        })
+        .withFailureHandler(function(error) {
+          showAlert('danger', getErrorMessage(error));
+          setSubmitting(false);
+        })
+        .evaluarAvisoSolicitud(payload);
+    }
+
+    /**
+     * Guarda la solicitud en el servidor.
+     *
+     * @param {Object} payload Datos del formulario.
+     */
+    function guardarSolicitud(payload) {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente. PDF generado y correos enviados.');
+          elements.form.reset();
+          elements.ausenciasBody.innerHTML = '';
+          addAusenciaRow();
+          setSubmitting(false);
+        })
+        .withFailureHandler(function(error) {
+          showAlert('danger', getErrorMessage(error));
+          setSubmitting(false);
+        })
+        .crearSolicitud(payload);
     }
 
     /**

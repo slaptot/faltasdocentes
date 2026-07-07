@@ -31,6 +31,14 @@ const ESTADOS_SOLICITUD = Object.freeze({
   INVALIDA: 'INVALIDA'
 });
 
+const MOTIVOS_ESPECIALES = Object.freeze({
+  LIBRE_DISPOSICION_CONCILIACION: 'Libre disposición por conciliación'
+});
+
+const LIMITES_MOTIVOS = Object.freeze({
+  LIBRE_DISPOSICION_CONCILIACION_DIAS: 4
+});
+
 const CONFIG_KEYS = Object.freeze({
   CARPETA_PDF: 'CarpetaPDF',
   CARPETA_JUSTIFICANTES: 'CarpetaJustificantes',

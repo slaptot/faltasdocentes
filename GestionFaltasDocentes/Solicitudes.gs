@@ -110,6 +110,23 @@ function listarSolicitudesAdmin(filtros) {
 }
 
 /**
+ * Evalua avisos no bloqueantes antes de registrar una solicitud.
+ *
+ * @param {Object} payload Datos recibidos desde el formulario.
+ * @return {Object} Aviso a mostrar, si procede.
+ */
+function evaluarAvisoSolicitud(payload) {
+  const user = getCurrentUser();
+
+  if (!user.authorized) {
+    throw new Error('No esta autorizado para utilizar esta aplicacion.');
+  }
+
+  const data = validateSolicitudPayload_(payload);
+  return buildAvisoLibreDisposicion_(user.email, data);
+}
+
+/**
  * Cambia el estado de una solicitud.
  *
  * @param {string} id ID de solicitud.
@@ -299,6 +316,73 @@ function validateSolicitudPayload_(payload) {
     ausencias: normalizedAusencias,
     justificante: data.justificante || null
   };
+}
+
+/**
+ * Construye el aviso de limite para libre disposicion por conciliacion.
+ *
+ * @param {string} email Email del profesor.
+ * @param {Object} data Datos validados de la nueva solicitud.
+ * @return {Object} Aviso no bloqueante.
+ * @private
+ */
+function buildAvisoLibreDisposicion_(email, data) {
+  if (data.motivo !== MOTIVOS_ESPECIALES.LIBRE_DISPOSICION_CONCILIACION) {
+    return {
+      warning: false
+    };
+  }
+
+  const diasPrevios = countDiasLibreDisposicion_(email);
+  const diasNuevaSolicitud = data.ausencias.length;
+  const total = diasPrevios + diasNuevaSolicitud;
+  const limite = LIMITES_MOTIVOS.LIBRE_DISPOSICION_CONCILIACION_DIAS;
+
+  if (total <= limite) {
+    return {
+      warning: false,
+      diasPrevios: diasPrevios,
+      diasNuevaSolicitud: diasNuevaSolicitud,
+      total: total,
+      limite: limite
+    };
+  }
+
+  return {
+    warning: true,
+    diasPrevios: diasPrevios,
+    diasNuevaSolicitud: diasNuevaSolicitud,
+    total: total,
+    limite: limite,
+    message: 'Este profesor ya tiene ' + diasPrevios + ' dia(s) registrados de Libre disposicion por conciliacion. Con esta solicitud llegaria a ' + total + ' dia(s), por encima del maximo de ' + limite + '. Es posible que la solicitud no sea correcta.'
+  };
+}
+
+/**
+ * Cuenta dias registrados para libre disposicion por conciliacion.
+ *
+ * Solo se tienen en cuenta solicitudes pendientes o aceptadas.
+ *
+ * @param {string} email Email del profesor.
+ * @return {number} Numero de dias registrados.
+ * @private
+ */
+function countDiasLibreDisposicion_(email) {
+  const normalizedEmail = normalizeText(email).toLowerCase();
+  const estadosComputables = [
+    ESTADOS_SOLICITUD.PENDIENTE,
+    ESTADOS_SOLICITUD.ACEPTADA
+  ];
+
+  return readSheetObjects_(SHEETS.SOLICITUDES, HEADERS.SOLICITUDES)
+    .filter(function(solicitud) {
+      return normalizeText(solicitud.Email).toLowerCase() === normalizedEmail &&
+        normalizeText(solicitud.Motivo) === MOTIVOS_ESPECIALES.LIBRE_DISPOSICION_CONCILIACION &&
+        estadosComputables.indexOf(normalizeText(solicitud.Estado)) !== -1;
+    })
+    .reduce(function(total, solicitud) {
+      return total + extractAusenciasFromObservaciones_(solicitud.Observaciones).length;
+    }, 0);
 }
 
 const AUSENCIA_TRAMOS = Object.freeze(['1', '2', 'R1', '3', '4', 'R2', '5', '6']);
