@@ -29,7 +29,7 @@ function generarDocumentoSolicitud(solicitud) {
   const document = DocumentApp.openById(documentId);
   const body = document.getBody();
 
-  replaceTextMarkers_(body, solicitud);
+  replaceTextMarkers_(document, solicitud);
   replaceTablaMarker_(body, solicitud);
   document.saveAndClose();
 
@@ -97,11 +97,11 @@ function getGoogleDocsTemplateFile_(templateId) {
 /**
  * Reemplaza marcadores simples de texto en el documento.
  *
- * @param {Body} body Cuerpo del documento.
+ * @param {Document} document Documento completo.
  * @param {Object} solicitud Solicitud.
  * @private
  */
-function replaceTextMarkers_(body, solicitud) {
+function replaceTextMarkers_(document, solicitud) {
   const observaciones = extractVisibleObservaciones_(solicitud.Observaciones);
   const replacements = {};
 
@@ -115,7 +115,35 @@ function replaceTextMarkers_(body, solicitud) {
   replacements[PDF_MARKERS.DOCUMENTO_ID] = getDriveViewUrl(solicitud.JustificanteDriveId) || '-';
 
   Object.keys(replacements).forEach(function(marker) {
-    body.replaceText(escapeForReplaceText_(marker), sanitizeDocumentText_(replacements[marker]));
+    replaceMarkerEverywhere_(document, marker, replacements[marker]);
+  });
+}
+
+/**
+ * Reemplaza un marcador en cuerpo, cabecera y pie del documento.
+ *
+ * @param {Document} document Documento Google Docs.
+ * @param {string} marker Marcador literal.
+ * @param {*} value Valor de reemplazo.
+ * @private
+ */
+function replaceMarkerEverywhere_(document, marker, value) {
+  const escapedMarker = escapeForReplaceText_(marker);
+  const safeValue = sanitizeDocumentText_(value);
+  const containers = [document.getBody()];
+  const header = document.getHeader();
+  const footer = document.getFooter();
+
+  if (header) {
+    containers.push(header);
+  }
+
+  if (footer) {
+    containers.push(footer);
+  }
+
+  containers.forEach(function(container) {
+    container.replaceText(escapedMarker, safeValue);
   });
 }
 
@@ -154,7 +182,6 @@ function replaceTablaMarker_(body, solicitud) {
  */
 function buildAusenciasTableRows_(solicitud) {
   const ausencias = extractAusenciasFromObservaciones_(solicitud.Observaciones);
-  const headers = ['Fecha', 'Tipo', 'Horario'];
   const rows = ausencias.map(function(ausencia) {
     return [
       formatDateForPdf_(ausencia.fecha),
@@ -163,7 +190,7 @@ function buildAusenciasTableRows_(solicitud) {
     ];
   });
 
-  return [headers].concat(rows.length ? rows : [['-', '-', '-']]);
+  return rows.length ? rows : [['-', '-', '-']];
 }
 
 /**
@@ -182,10 +209,7 @@ function formatAusenciasTable_(table) {
 
       text.setFontSize(8);
       text.setFontFamily('Times New Roman');
-
-      if (rowIndex === 0) {
-        text.setBold(true);
-      }
+      text.setBold(false);
     }
   }
 }
