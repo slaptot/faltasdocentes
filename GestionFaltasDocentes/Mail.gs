@@ -26,6 +26,8 @@ function notificarNuevaSolicitud(solicitud) {
   }
 
   const pdfUrl = getDriveDownloadUrl(solicitud.PDFDriveId);
+  const justificanteUrl = getDriveViewUrl(solicitud.JustificanteDriveId);
+  const attachments = buildSolicitudEmailAttachments_(solicitud);
   const subject = 'Nueva solicitud de falta docente ' + solicitud.ID;
   const direccionLines = [
     'Se ha registrado una nueva solicitud de falta docente.',
@@ -35,7 +37,8 @@ function notificarNuevaSolicitud(solicitud) {
     'Motivo: ' + solicitud.Motivo,
     'Estado: ' + solicitud.Estado,
     '',
-    'PDF: ' + pdfUrl
+    'PDF: ' + pdfUrl,
+    'Justificante: ' + (justificanteUrl || 'No adjuntado')
   ];
 
   if (solicitud.AvisoLimite && solicitud.AvisoLimite.warning) {
@@ -54,21 +57,51 @@ function notificarNuevaSolicitud(solicitud) {
     'Motivo: ' + solicitud.Motivo,
     'Estado: ' + solicitud.Estado,
     '',
-    'PDF: ' + pdfUrl
+    'PDF: ' + pdfUrl,
+    'Justificante: ' + (justificanteUrl || 'No adjuntado')
   ].join('\n');
 
   MailApp.sendEmail({
     to: correoDireccion,
     subject: subject,
     body: direccionBody,
-    name: APP.NAME
+    name: APP.NAME,
+    attachments: attachments
   });
   MailApp.sendEmail({
     to: correoProfesor,
     subject: 'Solicitud registrada ' + solicitud.ID,
     body: profesorBody,
-    name: APP.NAME
+    name: APP.NAME,
+    attachments: attachments
   });
+}
+
+/**
+ * Construye los adjuntos del correo de nueva solicitud.
+ *
+ * El primer adjunto siempre es el PDF generado de la solicitud. El segundo, si
+ * existe, es el justificante subido por el docente.
+ *
+ * @param {Object} solicitud Solicitud creada.
+ * @return {Blob[]} Adjuntos para Gmail.
+ * @private
+ */
+function buildSolicitudEmailAttachments_(solicitud) {
+  const attachments = [];
+  const pdfDriveId = normalizeText(solicitud.PDFDriveId);
+  const justificanteDriveId = normalizeText(solicitud.JustificanteDriveId);
+
+  if (pdfDriveId) {
+    attachments.push(DriveApp.getFileById(pdfDriveId).getBlob().setName('Solicitud_' + solicitud.ID + '.pdf'));
+  }
+
+  if (justificanteDriveId) {
+    const justificanteFile = DriveApp.getFileById(justificanteDriveId);
+    attachments.push(justificanteFile.getBlob().setName('Justificante_' + solicitud.ID + '_' + justificanteFile.getName()));
+  }
+
+  return attachments;
 }
 
 /**
