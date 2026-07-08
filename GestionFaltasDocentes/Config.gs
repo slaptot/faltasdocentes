@@ -45,6 +45,7 @@ const CONFIG_KEYS = Object.freeze({
   PLANTILLA_DOCS: 'PlantillaDocs',
   CORREO_DIRECCION: 'CorreoDireccion',
   CORREOS_ADMIN: 'CorreosAdmin',
+  GRUPO_DOCENTES: 'GrupoDocentes',
   CURSO_ESCOLAR: 'CursoEscolar'
 });
 
@@ -87,6 +88,7 @@ const DEFAULT_CONFIG_ROWS = Object.freeze([
   [CONFIG_KEYS.PLANTILLA_DOCS, ''],
   [CONFIG_KEYS.CORREO_DIRECCION, ''],
   [CONFIG_KEYS.CORREOS_ADMIN, ''],
+  [CONFIG_KEYS.GRUPO_DOCENTES, 'claustro@chabacier.es'],
   [CONFIG_KEYS.CURSO_ESCOLAR, '']
 ]);
 

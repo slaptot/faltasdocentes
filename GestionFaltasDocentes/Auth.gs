@@ -5,6 +5,7 @@
  * - Obtener el correo con Session.getActiveUser().getEmail().
  * - Validar que el correo pertenece al dominio corporativo.
  * - Usar Configuracion/CorreosAdmin para identificar administradores.
+ * - Usar Configuracion/GrupoDocentes para identificar docentes autorizados.
  * - Exponer el perfil autorizado al cliente.
  * - Ocultar Administracion si el Rol no es ADMIN.
  */
@@ -23,6 +24,10 @@ function getCurrentUser() {
     }
 
     const isAdmin = isAdminEmail_(email);
+
+    if (!isAdmin && !isTeacherGroupMember_(email)) {
+      return buildUnauthorizedUser_(email);
+    }
 
     return {
       authorized: true,
@@ -73,11 +78,14 @@ function getAuthState() {
 function diagnosticarLoginActual() {
   const activeEmail = normalizeText(Session.getActiveUser().getEmail()).toLowerCase();
   const effectiveEmail = normalizeText(Session.getEffectiveUser().getEmail()).toLowerCase();
+  const isAdmin = isAdminEmail_(activeEmail);
 
   return {
     activeUserEmail: activeEmail,
     effectiveUserEmail: effectiveEmail,
     temporaryActiveUserKey: Session.getTemporaryActiveUserKey(),
+    isAdmin: isAdmin,
+    isTeacherGroupMember: isAdmin ? true : isTeacherGroupMember_(activeEmail),
     fallbackName: buildNameFromEmail_(activeEmail),
     currentUser: getCurrentUser()
   };
@@ -171,4 +179,27 @@ function isAdminEmail_(email) {
     .filter(Boolean);
 
   return adminEmails.indexOf(normalizeText(email).toLowerCase()) !== -1;
+}
+
+/**
+ * Comprueba si el correo pertenece al grupo docente configurado.
+ *
+ * @param {string} email Correo del usuario.
+ * @return {boolean} True si pertenece al grupo.
+ * @private
+ */
+function isTeacherGroupMember_(email) {
+  const config = getConfiguracion();
+  const groupEmail = normalizeText(config[CONFIG_KEYS.GRUPO_DOCENTES] || 'claustro@chabacier.es').toLowerCase();
+
+  if (!groupEmail) {
+    return true;
+  }
+
+  try {
+    return GroupsApp.getGroupByEmail(groupEmail).hasUser(normalizeText(email).toLowerCase());
+  } catch (error) {
+    console.error('No se ha podido comprobar pertenencia al grupo docente ' + groupEmail, error);
+    return false;
+  }
 }
