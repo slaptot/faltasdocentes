@@ -22,7 +22,7 @@ function generarDocumentoSolicitud(solicitud) {
     throw new Error('Falta configurar PlantillaDocs en la hoja Configuracion.');
   }
 
-  const pdfFolder = getConfiguredFolder_(CONFIG_KEYS.CARPETA_PDF);
+  const pdfFolder = getYearFolder_(CONFIG_KEYS.CARPETA_PDF, solicitud.ID);
   const templateFile = getGoogleDocsTemplateFile_(templateId);
   const documentFile = templateFile.makeCopy('Solicitud_' + solicitud.ID, pdfFolder);
   const documentId = documentFile.getId();
