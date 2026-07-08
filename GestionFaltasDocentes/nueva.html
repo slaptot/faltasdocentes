@@ -2,7 +2,7 @@
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
       <h2 class="h4 mb-1">Nueva solicitud</h2>
-      <p class="text-secondary mb-0">Declaracion de falta de asistencia docente.</p>
+      <p class="text-secondary mb-0">Declaración de falta de asistencia docente.</p>
     </div>
     <button class="btn btn-outline-secondary" type="button" data-view-target="menu">
       <i class="bi bi-arrow-left"></i>
@@ -10,17 +10,23 @@
     </button>
   </div>
 
-  <form id="nueva-solicitud-form" novalidate>
+  <div class="app-loading-panel" id="nueva-loading-state">
+    <div class="d-flex align-items-center gap-3">
+      <div class="spinner-border app-spinner" role="status" aria-hidden="true"></div>
+      <div>
+        <h3 class="h6 mb-1">Cargando datos del formulario</h3>
+        <p class="text-secondary mb-0">Recuperando usuario y motivos oficiales.</p>
+      </div>
+    </div>
+  </div>
+
+  <form class="d-none" id="nueva-solicitud-form" novalidate>
     <div class="row g-3 mb-4">
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="form-profesor">Profesor</label>
-        <input class="form-control" id="form-profesor" type="text" readonly>
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="form-profesor">Docente (indique nombre completo antes de enviar)</label>
+        <input class="form-control" id="form-profesor" type="text" required>
       </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="form-departamento">Departamento</label>
-        <input class="form-control" id="form-departamento" type="text" readonly>
-      </div>
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-6">
         <label class="form-label" for="form-email">Correo</label>
         <input class="form-control" id="form-email" type="email" readonly>
       </div>
@@ -30,7 +36,7 @@
       <h3 class="h5 mb-0">Ausencias</h3>
       <button class="btn btn-outline-primary btn-sm" id="add-ausencia-row" type="button">
         <i class="bi bi-plus-lg"></i>
-        Anadir dia
+        Añadir día
       </button>
     </div>
 
@@ -39,14 +45,9 @@
         <thead>
           <tr>
             <th scope="col">Fecha</th>
-            <th scope="col">1a</th>
-            <th scope="col">2a</th>
-            <th scope="col">R1</th>
-            <th scope="col">3a</th>
-            <th scope="col">4a</th>
-            <th scope="col">R2</th>
-            <th scope="col">5a</th>
-            <th scope="col">6a</th>
+            <th scope="col">Día entero</th>
+            <th scope="col">Hora salida</th>
+            <th scope="col">Hora vuelta</th>
             <th scope="col"></th>
           </tr>
         </thead>
@@ -66,8 +67,13 @@
         </select>
       </div>
       <div class="col-12 col-lg-6">
-        <label class="form-label" for="justificante-file">Documentacion</label>
+        <label class="form-label" for="justificante-file">Documentación</label>
         <input class="form-control" id="justificante-file" type="file" accept="application/pdf,image/jpeg,image/png">
+      </div>
+      <div class="col-12">
+        <p class="fw-bold mb-0">
+          El documento PDF se debe entregar en Jefatura impreso junto con el justificante correspondiente. El justificante, si no se quiere subir, se ha de entregar en papel.
+        </p>
       </div>
       <div class="col-12">
         <label class="form-label" for="observaciones">Observaciones</label>

@@ -16,14 +16,24 @@
     function init() {
       elements.loadingState = document.getElementById('loading-state');
       elements.unauthorizedState = document.getElementById('unauthorized-state');
+      elements.loggedOutState = document.getElementById('logged-out-state');
       elements.mainState = document.getElementById('main-state');
       elements.unauthorizedEmail = document.getElementById('unauthorized-email');
-      elements.userName = document.getElementById('user-name');
-      elements.userDepartment = document.getElementById('user-department');
-      elements.userDepartmentWrapper = document.getElementById('user-department-wrapper');
+      elements.headerUserEmail = document.getElementById('header-user-email');
       elements.adminCard = document.getElementById('admin-card');
       elements.menuView = document.getElementById('menu-view');
       elements.nuevaView = document.getElementById('view-nueva');
+      elements.historialView = document.getElementById('view-historial');
+      elements.adminView = document.getElementById('view-admin');
+      elements.logoutButton = document.getElementById('logout-button');
+      elements.loginAgainButton = document.getElementById('login-again-button');
+      elements.themeToggleButton = document.getElementById('theme-toggle-button');
+      elements.themeToggleIcon = document.getElementById('theme-toggle-icon');
+
+      initTheme();
+      elements.logoutButton.addEventListener('click', logout);
+      elements.loginAgainButton.addEventListener('click', reloadApp);
+      elements.themeToggleButton.addEventListener('click', toggleTheme);
 
       google.script.run
         .withSuccessHandler(renderAuthState)
@@ -44,18 +54,14 @@
         return;
       }
 
-      elements.userName.textContent = user.nombre || user.email;
-
-      if (user.departamento) {
-        elements.userDepartment.textContent = user.departamento;
-        show(elements.userDepartmentWrapper);
-      }
+      elements.headerUserEmail.textContent = user.email || '';
 
       if (!user.isAdmin) {
         hide(elements.adminCard);
       }
 
       bindNavigation();
+      show(elements.logoutButton);
       show(elements.mainState);
     }
 
@@ -67,7 +73,7 @@
     function renderAuthError(error) {
       hide(elements.loadingState);
       renderUnauthorized({
-        message: 'No esta autorizado para utilizar esta aplicacion.',
+        message: 'No está autorizado para utilizar esta aplicación.',
         error: error && error.message ? error.message : ''
       });
     }
@@ -80,6 +86,7 @@
     function renderUnauthorized(user) {
       const detail = user && user.email ? 'Usuario detectado: ' + user.email : '';
       elements.unauthorizedEmail.textContent = detail;
+      hide(elements.logoutButton);
       show(elements.unauthorizedState);
     }
 
@@ -124,6 +131,8 @@
     function showView(viewName) {
       if (viewName === 'nueva') {
         hide(elements.menuView);
+        hide(elements.historialView);
+        hide(elements.adminView);
         show(elements.nuevaView);
 
         if (window.GestionFaltasDocentesNueva) {
@@ -132,13 +141,88 @@
         return;
       }
 
+      if (viewName === 'historial') {
+        hide(elements.menuView);
+        hide(elements.nuevaView);
+        hide(elements.adminView);
+        show(elements.historialView);
+
+        if (window.GestionFaltasDocentesHistorial) {
+          window.GestionFaltasDocentesHistorial.load();
+        }
+        return;
+      }
+
+      if (viewName === 'admin') {
+        hide(elements.menuView);
+        hide(elements.nuevaView);
+        hide(elements.historialView);
+        show(elements.adminView);
+
+        if (window.GestionFaltasDocentesAdmin) {
+          window.GestionFaltasDocentesAdmin.load();
+        }
+        return;
+      }
+
       hide(elements.nuevaView);
+      hide(elements.historialView);
+      hide(elements.adminView);
       show(elements.menuView);
+    }
+
+    /**
+     * Cierra la sesión local de la aplicación.
+     */
+    function logout() {
+      hide(elements.mainState);
+      hide(elements.unauthorizedState);
+      hide(elements.loadingState);
+      hide(elements.logoutButton);
+      show(elements.loggedOutState);
+    }
+
+    /**
+     * Recarga la aplicacion para volver a comprobar la cuenta Google activa.
+     */
+    function reloadApp() {
+      window.top.location.reload();
+    }
+
+    /**
+     * Inicializa el tema visual desde localStorage.
+     */
+    function initTheme() {
+      applyTheme(localStorage.getItem('gestionFaltasTheme') === 'dark' ? 'dark' : 'light');
+    }
+
+    /**
+     * Alterna entre modo claro y oscuro.
+     */
+    function toggleTheme() {
+      const nextTheme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('gestionFaltasTheme', nextTheme);
+      applyTheme(nextTheme);
+    }
+
+    /**
+     * Aplica el tema indicado.
+     *
+     * @param {string} theme Tema visual.
+     */
+    function applyTheme(theme) {
+      const isDark = theme === 'dark';
+
+      document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      elements.themeToggleIcon.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars';
+      elements.themeToggleButton.setAttribute('aria-label', isDark ? 'Activar modo claro' : 'Activar modo oscuro');
+      elements.themeToggleButton.setAttribute('title', isDark ? 'Modo claro' : 'Modo oscuro');
     }
 
     window.GestionFaltasDocentes = {
       ready: true,
-      showView: showView
+      showView: showView,
+      logout: logout
     };
   })();
 </script>

@@ -3,10 +3,14 @@
    * Cliente del modulo Nueva solicitud.
    */
   (function() {
-    const tramos = ['1', '2', 'R1', '3', '4', 'R2', '5', '6'];
     const state = {
       loaded: false,
-      motivos: []
+      motivos: [],
+      profesor: {
+        nombre: '',
+        email: ''
+      },
+      saveNombreTimeoutId: null
     };
     const elements = {};
 
@@ -16,9 +20,9 @@
      * Inicializa el formulario cuando el DOM esta disponible.
      */
     function initNuevaSolicitud() {
+      elements.loadingState = document.getElementById('nueva-loading-state');
       elements.form = document.getElementById('nueva-solicitud-form');
       elements.profesor = document.getElementById('form-profesor');
-      elements.departamento = document.getElementById('form-departamento');
       elements.email = document.getElementById('form-email');
       elements.ausenciasBody = document.getElementById('ausencias-body');
       elements.addAusenciaRow = document.getElementById('add-ausencia-row');
@@ -35,6 +39,8 @@
 
       elements.addAusenciaRow.addEventListener('click', addAusenciaRow);
       elements.motivoSearch.addEventListener('input', renderMotivos);
+      elements.profesor.addEventListener('input', scheduleNombreDocenteSave);
+      elements.profesor.addEventListener('change', saveNombreDocente);
       elements.form.addEventListener('submit', submitSolicitud);
     }
 
@@ -43,20 +49,24 @@
      */
     function load() {
       if (state.loaded) {
+        resetFormForNewRequest();
+        showForm();
         return;
       }
 
+      showLoading();
       google.script.run
         .withSuccessHandler(function(data) {
           state.loaded = true;
-          elements.profesor.value = data.profesor.nombre || '';
-          elements.departamento.value = data.profesor.departamento || '';
-          elements.email.value = data.profesor.email || '';
+          state.profesor.nombre = data.profesor.nombre || '';
+          state.profesor.email = data.profesor.email || '';
           state.motivos = data.motivos || [];
           renderMotivos();
-          addAusenciaRow();
+          resetFormForNewRequest();
+          showForm();
         })
         .withFailureHandler(function(error) {
+          showForm();
           showAlert('danger', getErrorMessage(error));
         })
         .getNuevaSolicitudData();
@@ -69,12 +79,15 @@
       const row = document.createElement('tr');
       row.innerHTML = [
         '<td><input class="form-control form-control-sm ausencia-fecha" type="date" required></td>',
-        tramos.map(function(tramo) {
-          return '<td>' + buildTramoSelect(tramo) + '</td>';
-        }).join(''),
-        '<td><button class="btn btn-outline-danger btn-sm" type="button" title="Eliminar dia"><i class="bi bi-trash"></i></button></td>'
+        '<td class="text-center"><input class="form-check-input ausencia-dia-entero" type="checkbox" aria-label="Día entero"></td>',
+        '<td><input class="form-control form-control-sm ausencia-salida" type="time"></td>',
+        '<td><input class="form-control form-control-sm ausencia-vuelta" type="time"></td>',
+        '<td><button class="btn btn-outline-danger btn-sm" type="button" title="Eliminar día"><i class="bi bi-trash"></i></button></td>'
       ].join('');
 
+      row.querySelector('.ausencia-dia-entero').addEventListener('change', function(event) {
+        toggleHoraInputs(row, event.target.checked);
+      });
       row.querySelector('button').addEventListener('click', function() {
         if (elements.ausenciasBody.children.length > 1) {
           row.remove();
@@ -85,19 +98,20 @@
     }
 
     /**
-     * Construye el desplegable de un tramo.
+     * Activa o desactiva horas cuando se marca dia entero.
      *
-     * @param {string} tramo Tramo horario.
-     * @return {string} HTML del select.
+     * @param {HTMLTableRowElement} row Fila de ausencia.
+     * @param {boolean} diaEntero True si es dia entero.
      */
-    function buildTramoSelect(tramo) {
-      return [
-        '<select class="form-select form-select-sm ausencia-tramo" data-tramo="' + tramo + '">',
-        '<option value="-">-</option>',
-        '<option value="L">L</option>',
-        '<option value="C">C</option>',
-        '</select>'
-      ].join('');
+    function toggleHoraInputs(row, diaEntero) {
+      ['.ausencia-salida', '.ausencia-vuelta'].forEach(function(selector) {
+        const input = row.querySelector(selector);
+        input.disabled = diaEntero;
+
+        if (diaEntero) {
+          input.value = '';
+        }
+      });
     }
 
     /**
@@ -135,19 +149,7 @@
 
       buildPayload()
         .then(function(payload) {
-          google.script.run
-            .withSuccessHandler(function(result) {
-              showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente. PDF generado y correos enviados.');
-              elements.form.reset();
-              elements.ausenciasBody.innerHTML = '';
-              addAusenciaRow();
-              setSubmitting(false);
-            })
-            .withFailureHandler(function(error) {
-              showAlert('danger', getErrorMessage(error));
-              setSubmitting(false);
-            })
-            .crearSolicitud(payload);
+          revisarAvisosAntesDeGuardar(payload);
         })
         .catch(function(error) {
           showAlert('danger', error.message);
@@ -156,31 +158,109 @@
     }
 
     /**
+     * Revisa avisos no bloqueantes antes de crear la solicitud.
+     *
+     * @param {Object} payload Datos del formulario.
+     */
+    function revisarAvisosAntesDeGuardar(payload) {
+      google.script.run
+        .withSuccessHandler(function(aviso) {
+          if (aviso && aviso.warning && !window.confirm(aviso.message + '\n\n¿Desea continuar de todos modos?')) {
+            setSubmitting(false);
+            showAlert('warning', aviso.message);
+            return;
+          }
+
+          guardarSolicitud(payload);
+        })
+        .withFailureHandler(function(error) {
+          showAlert('danger', getErrorMessage(error));
+          setSubmitting(false);
+        })
+        .evaluarAvisoSolicitud(payload);
+    }
+
+    /**
+     * Guarda la solicitud en el servidor.
+     *
+     * @param {Object} payload Datos del formulario.
+     */
+    function guardarSolicitud(payload) {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          state.profesor.nombre = payload.docente;
+          showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente. PDF generado y correos enviados.');
+          resetFormForNewRequest({keepAlert: true});
+          setSubmitting(false);
+        })
+        .withFailureHandler(function(error) {
+          showAlert('danger', getErrorMessage(error));
+          setSubmitting(false);
+        })
+        .crearSolicitud(payload);
+    }
+
+    /**
+     * Programa el guardado del nombre del docente con una pequena espera.
+     */
+    function scheduleNombreDocenteSave() {
+      window.clearTimeout(state.saveNombreTimeoutId);
+      state.saveNombreTimeoutId = window.setTimeout(saveNombreDocente, 900);
+    }
+
+    /**
+     * Guarda el nombre del docente autenticado en la hoja Profesores.
+     */
+    function saveNombreDocente() {
+      const docente = normalizeClientText(elements.profesor.value);
+
+      window.clearTimeout(state.saveNombreTimeoutId);
+
+      if (!docente || docente === state.profesor.nombre) {
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(profesor) {
+          state.profesor.nombre = profesor && profesor.nombre ? profesor.nombre : docente;
+        })
+        .withFailureHandler(function(error) {
+          console.warn('No se ha podido guardar el nombre del docente', error);
+        })
+        .guardarNombreDocenteActual(docente);
+    }
+
+    /**
      * Construye el payload validado del formulario.
      *
      * @return {Promise<Object>} Payload listo para servidor.
      */
     function buildPayload() {
+      const docente = normalizeClientText(elements.profesor.value);
       const motivo = elements.motivoSelect.value;
+
+      if (!docente) {
+        return Promise.reject(new Error('Debe indicar el nombre completo del docente.'));
+      }
 
       if (!motivo) {
         return Promise.reject(new Error('Debe seleccionar un motivo.'));
       }
 
       const ausencias = Array.from(elements.ausenciasBody.querySelectorAll('tr')).map(function(row) {
-        const tramosData = {};
-        row.querySelectorAll('.ausencia-tramo').forEach(function(select) {
-          tramosData[select.dataset.tramo] = select.value;
-        });
+        const diaEntero = row.querySelector('.ausencia-dia-entero').checked;
 
         return {
           fecha: row.querySelector('.ausencia-fecha').value,
-          tramos: tramosData
+          diaEntero: diaEntero,
+          horaSalida: diaEntero ? '' : row.querySelector('.ausencia-salida').value,
+          horaVuelta: diaEntero ? '' : row.querySelector('.ausencia-vuelta').value
         };
       });
 
       return readSelectedFile().then(function(filePayload) {
         return {
+          docente: docente,
           motivo: motivo,
           observaciones: elements.observaciones.value,
           ausencias: ausencias,
@@ -237,6 +317,26 @@
     }
 
     /**
+     * Limpia el formulario para una solicitud nueva manteniendo datos de login.
+     *
+     * @param {Object=} options Opciones de limpieza.
+     */
+    function resetFormForNewRequest(options) {
+      const keepAlert = options && options.keepAlert === true;
+
+      elements.form.reset();
+      elements.profesor.value = state.profesor.nombre;
+      elements.email.value = state.profesor.email;
+      elements.ausenciasBody.innerHTML = '';
+      addAusenciaRow();
+      renderMotivos();
+
+      if (!keepAlert) {
+        hideAlert();
+      }
+    }
+
+    /**
      * Muestra una alerta del formulario.
      *
      * @param {string} type Tipo Bootstrap.
@@ -262,7 +362,7 @@
      * @return {string} Mensaje.
      */
     function getErrorMessage(error) {
-      return error && error.message ? error.message : 'No se ha podido completar la operacion.';
+      return error && error.message ? error.message : 'No se ha podido completar la operación.';
     }
 
     /**
@@ -273,6 +373,35 @@
      */
     function normalizeClientText(value) {
       return String(value || '').trim();
+    }
+
+    /**
+     * Muestra el indicador de carga y oculta el formulario.
+     */
+    function showLoading() {
+      elements.loadingState.classList.remove('d-none');
+      elements.form.classList.add('d-none');
+      setFormDisabled(true);
+    }
+
+    /**
+     * Muestra el formulario y oculta el indicador de carga.
+     */
+    function showForm() {
+      elements.loadingState.classList.add('d-none');
+      elements.form.classList.remove('d-none');
+      setFormDisabled(false);
+    }
+
+    /**
+     * Deshabilita o habilita los controles del formulario.
+     *
+     * @param {boolean} disabled Estado deshabilitado.
+     */
+    function setFormDisabled(disabled) {
+      elements.form.querySelectorAll('input, select, textarea, button').forEach(function(control) {
+        control.disabled = disabled;
+      });
     }
 
     window.GestionFaltasDocentesNueva = {

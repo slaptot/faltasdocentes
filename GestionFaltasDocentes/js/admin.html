@@ -1,6 +1,588 @@
 <script>
   /**
    * Cliente del modulo Administracion.
-   * Pendiente de implementacion tras confirmacion del modulo Administracion.
    */
+  (function() {
+    const state = {
+      motivosLoaded: false,
+      solicitudes: [],
+      selectedIds: new Set(),
+      currentPage: 1,
+      pageSize: 10,
+      pendingResolution: null
+    };
+    const elements = {};
+
+    document.addEventListener('DOMContentLoaded', initAdmin);
+
+    /**
+     * Inicializa la vista de administracion.
+     */
+    function initAdmin() {
+      elements.form = document.getElementById('admin-filters-form');
+      elements.year = document.getElementById('admin-filter-year');
+      elements.month = document.getElementById('admin-filter-month');
+      elements.profesor = document.getElementById('admin-filter-profesor');
+      elements.tipo = document.getElementById('admin-filter-tipo');
+      elements.clearFilters = document.getElementById('admin-clear-filters');
+      elements.exportCsv = document.getElementById('admin-export-csv');
+      elements.loadingState = document.getElementById('admin-loading-state');
+      elements.alert = document.getElementById('admin-alert');
+      elements.tableWrapper = document.getElementById('admin-table-wrapper');
+      elements.body = document.getElementById('admin-body');
+      elements.pageSize = document.getElementById('admin-page-size');
+      elements.selectPage = document.getElementById('admin-select-page');
+      elements.selectionSummary = document.getElementById('admin-selection-summary');
+      elements.bulkAccept = document.getElementById('admin-bulk-accept');
+      elements.bulkReject = document.getElementById('admin-bulk-reject');
+      elements.paginationSummary = document.getElementById('admin-pagination-summary');
+      elements.paginationPage = document.getElementById('admin-pagination-page');
+      elements.pagePrev = document.getElementById('admin-page-prev');
+      elements.pageNext = document.getElementById('admin-page-next');
+      elements.resolutionModal = document.getElementById('admin-resolution-modal');
+      elements.resolutionForm = document.getElementById('admin-resolution-form');
+      elements.resolutionTitle = document.getElementById('admin-resolution-title');
+      elements.resolutionSummary = document.getElementById('admin-resolution-summary');
+      elements.resolutionReasonBlock = document.getElementById('admin-resolution-reason-block');
+      elements.resolutionReasonLabel = document.getElementById('admin-resolution-reason-label');
+      elements.resolutionReason = document.getElementById('admin-resolution-reason');
+      elements.year.value = String(new Date().getFullYear());
+
+      elements.form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        load();
+      });
+      elements.clearFilters.addEventListener('click', function() {
+        elements.form.reset();
+        elements.year.value = String(new Date().getFullYear());
+        load();
+      });
+      elements.exportCsv.addEventListener('click', exportCsv);
+      elements.pageSize.addEventListener('change', changePageSize);
+      elements.selectPage.addEventListener('change', toggleCurrentPageSelection);
+      elements.bulkAccept.addEventListener('click', function() {
+        openBulkResolutionModal('ACEPTADA');
+      });
+      elements.bulkReject.addEventListener('click', function() {
+        openBulkResolutionModal('RECHAZADA');
+      });
+      elements.pagePrev.addEventListener('click', function() {
+        goToPage(state.currentPage - 1);
+      });
+      elements.pageNext.addEventListener('click', function() {
+        goToPage(state.currentPage + 1);
+      });
+      elements.resolutionForm.addEventListener('submit', submitResolution);
+    }
+
+    /**
+     * Carga solicitudes aplicando filtros.
+     */
+    function load() {
+      if (!state.motivosLoaded) {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function(motivos) {
+            state.motivosLoaded = true;
+            renderMotivos(motivos || []);
+            loadSolicitudes();
+          })
+          .withFailureHandler(function(error) {
+            hideLoading();
+            showAlert('danger', getErrorMessage(error));
+          })
+          .listarMotivos();
+        return;
+      }
+
+      loadSolicitudes();
+    }
+
+    /**
+     * Carga solicitudes aplicando filtros.
+     */
+    function loadSolicitudes() {
+      showLoading();
+      google.script.run
+        .withSuccessHandler(renderSolicitudes)
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showAlert('danger', getErrorMessage(error));
+        })
+        .listarSolicitudesAdmin({
+          anio: elements.year.value,
+          mes: elements.month.value,
+          profesor: elements.profesor.value,
+          tipo: elements.tipo.value
+        });
+    }
+
+    /**
+     * Renderiza solicitudes.
+     *
+     * @param {Object[]} solicitudes Solicitudes.
+     */
+    function renderSolicitudes(solicitudes) {
+      hideLoading();
+      hideAlert();
+      elements.body.innerHTML = '';
+      state.solicitudes = solicitudes || [];
+      state.selectedIds.clear();
+      state.currentPage = 1;
+      state.pageSize = getPageSize();
+
+      if (!state.solicitudes.length) {
+        showAlert('info', 'No hay solicitudes para los filtros seleccionados.');
+        return;
+      }
+
+      elements.tableWrapper.classList.remove('d-none');
+      renderCurrentPage();
+    }
+
+    /**
+     * Renderiza la pagina actual del listado.
+     */
+    function renderCurrentPage() {
+      const total = state.solicitudes.length;
+      const pageCount = getPageCount();
+      const currentPage = Math.min(Math.max(state.currentPage, 1), pageCount);
+      const startIndex = (currentPage - 1) * state.pageSize;
+      const endIndex = Math.min(startIndex + state.pageSize, total);
+      const visibleSolicitudes = state.solicitudes.slice(startIndex, endIndex);
+
+      state.currentPage = currentPage;
+      elements.body.innerHTML = '';
+
+      visibleSolicitudes.forEach(function(solicitud) {
+        elements.body.appendChild(buildRow(solicitud));
+      });
+
+      elements.paginationSummary.textContent = 'Mostrando ' + (startIndex + 1) + '-' + endIndex + ' de ' + total + ' solicitudes';
+      elements.paginationPage.textContent = 'Página ' + currentPage + ' de ' + pageCount;
+      elements.pagePrev.disabled = currentPage <= 1;
+      elements.pageNext.disabled = currentPage >= pageCount;
+      updateSelectionControls();
+    }
+
+    /**
+     * Cambia el numero de registros por pagina.
+     */
+    function changePageSize() {
+      state.pageSize = getPageSize();
+      state.currentPage = 1;
+      renderCurrentPage();
+    }
+
+    /**
+     * Cambia la pagina actual.
+     *
+     * @param {number} page Pagina destino.
+     */
+    function goToPage(page) {
+      const pageCount = getPageCount();
+      state.currentPage = Math.min(Math.max(page, 1), pageCount);
+      renderCurrentPage();
+    }
+
+    /**
+     * Obtiene el tamano de pagina seleccionado respetando el maximo.
+     *
+     * @return {number} Tamano de pagina.
+     */
+    function getPageSize() {
+      const size = parseInt(elements.pageSize.value, 10);
+
+      if (isNaN(size)) {
+        return 10;
+      }
+
+      return Math.min(Math.max(size, 1), 100);
+    }
+
+    /**
+     * Calcula el numero total de paginas.
+     *
+     * @return {number} Numero de paginas.
+     */
+    function getPageCount() {
+      return Math.max(Math.ceil(state.solicitudes.length / state.pageSize), 1);
+    }
+
+    /**
+     * Renderiza el selector de motivos oficiales.
+     *
+     * @param {string[]} motivos Motivos.
+     */
+    function renderMotivos(motivos) {
+      elements.tipo.innerHTML = '<option value="">Todos los tipos</option>';
+      motivos.forEach(function(motivo) {
+        const option = document.createElement('option');
+        option.value = motivo;
+        option.textContent = motivo;
+        elements.tipo.appendChild(option);
+      });
+    }
+
+    /**
+     * Construye una fila de administracion.
+     *
+     * @param {Object} solicitud Solicitud.
+     * @return {HTMLTableRowElement} Fila.
+     */
+    function buildRow(solicitud) {
+      const row = document.createElement('tr');
+      const pdfButton = solicitud.pdfUrl
+        ? '<a class="btn btn-outline-primary btn-sm" href="' + escapeAttribute(solicitud.pdfUrl) + '" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf"></i> Ver PDF</a>'
+        : '<span class="text-secondary">Sin PDF</span>';
+
+      row.innerHTML = [
+        '<td class="text-center"><input class="form-check-input admin-row-select" type="checkbox" value="' + escapeAttribute(solicitud.id) + '" aria-label="Seleccionar solicitud ' + escapeAttribute(solicitud.id) + '"' + (state.selectedIds.has(solicitud.id) ? ' checked' : '') + '></td>',
+        '<td class="fw-semibold">' + escapeHtml(solicitud.id) + '</td>',
+        '<td>' + escapeHtml(solicitud.fecha) + '</td>',
+        '<td class="small">' + formatMultiline(solicitud.horario) + '</td>',
+        '<td><div>' + escapeHtml(solicitud.profesor) + '</div><div class="small text-secondary">' + escapeHtml(solicitud.email) + '</div></td>',
+        '<td>' + escapeHtml(solicitud.motivo) + '</td>',
+        '<td><span class="badge ' + getEstadoBadgeClass(solicitud.estado) + '">' + escapeHtml(solicitud.estado) + '</span></td>',
+        '<td class="small">' + formatMultiline(solicitud.razonResolucion) + '</td>',
+        '<td>' + pdfButton + '</td>',
+        '<td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-success" type="button" data-action="ACEPTADA"><i class="bi bi-check2"></i> Aceptar</button><button class="btn btn-outline-danger" type="button" data-action="RECHAZADA"><i class="bi bi-x-lg"></i> Rechazar</button></div></td>'
+      ].join('');
+
+      row.querySelectorAll('button[data-action]').forEach(function(button) {
+        button.addEventListener('click', function() {
+          openResolutionModal(solicitud, button.dataset.action);
+        });
+      });
+      row.querySelector('.admin-row-select').addEventListener('change', function(event) {
+        toggleSolicitudSelection(solicitud.id, event.target.checked);
+      });
+
+      return row;
+    }
+
+    /**
+     * Marca o desmarca una solicitud.
+     *
+     * @param {string} id ID de solicitud.
+     * @param {boolean} selected Estado de seleccion.
+     */
+    function toggleSolicitudSelection(id, selected) {
+      if (selected) {
+        state.selectedIds.add(id);
+      } else {
+        state.selectedIds.delete(id);
+      }
+
+      updateSelectionControls();
+    }
+
+    /**
+     * Selecciona o deselecciona todas las solicitudes visibles.
+     *
+     * @param {Event} event Evento de cambio.
+     */
+    function toggleCurrentPageSelection(event) {
+      getVisibleSolicitudes().forEach(function(solicitud) {
+        toggleSolicitudSelection(solicitud.id, event.target.checked);
+      });
+      renderCurrentPage();
+    }
+
+    /**
+     * Obtiene las solicitudes visibles en la pagina actual.
+     *
+     * @return {Object[]} Solicitudes visibles.
+     */
+    function getVisibleSolicitudes() {
+      const startIndex = (state.currentPage - 1) * state.pageSize;
+      const endIndex = Math.min(startIndex + state.pageSize, state.solicitudes.length);
+      return state.solicitudes.slice(startIndex, endIndex);
+    }
+
+    /**
+     * Actualiza controles relacionados con seleccion multiple.
+     */
+    function updateSelectionControls() {
+      const selectedCount = state.selectedIds.size;
+      const visibleSolicitudes = getVisibleSolicitudes();
+      const visibleSelectedCount = visibleSolicitudes.filter(function(solicitud) {
+        return state.selectedIds.has(solicitud.id);
+      }).length;
+
+      elements.selectionSummary.textContent = selectedCount === 1
+        ? '1 seleccionada'
+        : selectedCount + ' seleccionadas';
+      elements.bulkAccept.disabled = selectedCount === 0;
+      elements.bulkReject.disabled = selectedCount === 0;
+      elements.selectPage.checked = visibleSolicitudes.length > 0 && visibleSelectedCount === visibleSolicitudes.length;
+      elements.selectPage.indeterminate = visibleSelectedCount > 0 && visibleSelectedCount < visibleSolicitudes.length;
+    }
+
+    /**
+     * Abre el modal de resolucion.
+     *
+     * @param {Object} solicitud Solicitud.
+     * @param {string} estado Estado.
+     */
+    function openResolutionModal(solicitud, estado) {
+      state.pendingResolution = {
+        ids: [solicitud.id],
+        estado: estado
+      };
+      elements.resolutionTitle.textContent = estado === 'ACEPTADA' ? 'Aceptar solicitud' : 'Rechazar solicitud';
+      elements.resolutionSummary.textContent = solicitud.id + ' - ' + solicitud.profesor;
+      elements.resolutionReason.value = '';
+      elements.resolutionReason.required = estado === 'RECHAZADA';
+      elements.resolutionReasonBlock.classList.toggle('d-none', estado === 'ACEPTADA');
+      elements.resolutionReasonLabel.textContent = estado === 'RECHAZADA'
+        ? 'Razón del rechazo'
+        : 'Observación interna';
+      bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).show();
+      focusResolutionReasonIfNeeded(estado);
+    }
+
+    /**
+     * Abre el modal de resolucion para las solicitudes seleccionadas.
+     *
+     * @param {string} estado Estado.
+     */
+    function openBulkResolutionModal(estado) {
+      const ids = Array.from(state.selectedIds);
+
+      if (!ids.length) {
+        showAlert('info', 'Seleccione al menos una solicitud.');
+        return;
+      }
+
+      state.pendingResolution = {
+        ids: ids,
+        estado: estado
+      };
+      elements.resolutionTitle.textContent = estado === 'ACEPTADA'
+        ? 'Aceptar solicitudes seleccionadas'
+        : 'Rechazar solicitudes seleccionadas';
+      elements.resolutionSummary.textContent = ids.length === 1
+        ? 'Se resolverá 1 solicitud.'
+        : 'Se resolverán ' + ids.length + ' solicitudes.';
+      elements.resolutionReason.value = '';
+      elements.resolutionReason.required = estado === 'RECHAZADA';
+      elements.resolutionReasonBlock.classList.toggle('d-none', estado === 'ACEPTADA');
+      elements.resolutionReasonLabel.textContent = estado === 'RECHAZADA'
+        ? 'Razón del rechazo'
+        : 'Observación interna';
+      bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).show();
+      focusResolutionReasonIfNeeded(estado);
+    }
+
+    /**
+     * Enfoca el campo de razon cuando la resolucion lo necesita.
+     *
+     * @param {string} estado Estado.
+     */
+    function focusResolutionReasonIfNeeded(estado) {
+      if (estado !== 'RECHAZADA') {
+        return;
+      }
+
+      elements.resolutionModal.addEventListener('shown.bs.modal', function focusReason() {
+        elements.resolutionModal.removeEventListener('shown.bs.modal', focusReason);
+        elements.resolutionReason.focus();
+      });
+    }
+
+    /**
+     * Guarda la resolucion indicada en el modal.
+     *
+     * @param {SubmitEvent} event Evento.
+     */
+    function submitResolution(event) {
+      event.preventDefault();
+
+      if (!state.pendingResolution) {
+        return;
+      }
+
+      const razon = elements.resolutionReason.value.trim();
+
+      if (state.pendingResolution.estado === 'RECHAZADA' && !razon) {
+        elements.resolutionReason.reportValidity();
+        return;
+      }
+
+      cambiarEstado(state.pendingResolution.ids, state.pendingResolution.estado, razon);
+    }
+
+    /**
+     * Cambia estado de una o varias solicitudes.
+     *
+     * @param {string[]} ids IDs.
+     * @param {string} estado Estado.
+     * @param {string} razon Razon de resolucion.
+     */
+    function cambiarEstado(ids, estado, razon) {
+      bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).hide();
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function() {
+          state.pendingResolution = null;
+          state.selectedIds.clear();
+          load();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showAlert('danger', getErrorMessage(error));
+        })
+        .cambiarEstadoSolicitudes(ids, estado, razon);
+    }
+
+    /**
+     * Exporta el listado actual a CSV.
+     */
+    function exportCsv() {
+      if (!state.solicitudes.length) {
+        showAlert('info', 'No hay datos para exportar.');
+        return;
+      }
+
+      const headers = ['ID', 'Fecha', 'Horario', 'Docente', 'Email', 'Tipo', 'Estado', 'Razón', 'PDF'];
+      const rows = state.solicitudes.map(function(solicitud) {
+        return [
+          solicitud.id,
+          solicitud.fecha,
+          solicitud.horario,
+          solicitud.profesor,
+          solicitud.email,
+          solicitud.motivo,
+          solicitud.estado,
+          solicitud.razonResolucion,
+          solicitud.pdfUrl
+        ];
+      });
+      const csv = [headers].concat(rows).map(function(row) {
+        return row.map(csvEscape).join(',');
+      }).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'solicitudes_' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Escapa un valor CSV.
+     *
+     * @param {*} value Valor.
+     * @return {string} Valor CSV.
+     */
+    function csvEscape(value) {
+      const text = String(value || '');
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+
+    /**
+     * Convierte saltos de linea en HTML seguro.
+     *
+     * @param {string} value Texto.
+     * @return {string} HTML seguro.
+     */
+    function formatMultiline(value) {
+      return escapeHtml(value || '-').replace(/\n/g, '<br>');
+    }
+
+    /**
+     * Clase visual de estado.
+     *
+     * @param {string} estado Estado.
+     * @return {string} Clase.
+     */
+    function getEstadoBadgeClass(estado) {
+      if (estado === 'ACEPTADA') {
+        return 'text-bg-success';
+      }
+
+      if (estado === 'RECHAZADA' || estado === 'INVALIDA') {
+        return 'text-bg-danger';
+      }
+
+      return 'text-bg-warning';
+    }
+
+    /**
+     * Muestra carga.
+     */
+    function showLoading() {
+      elements.loadingState.classList.remove('d-none');
+      elements.tableWrapper.classList.add('d-none');
+    }
+
+    /**
+     * Oculta carga.
+     */
+    function hideLoading() {
+      elements.loadingState.classList.add('d-none');
+    }
+
+    /**
+     * Muestra alerta.
+     *
+     * @param {string} type Tipo Bootstrap.
+     * @param {string} message Mensaje.
+     */
+    function showAlert(type, message) {
+      elements.alert.className = 'alert alert-' + type;
+      elements.alert.textContent = message;
+    }
+
+    /**
+     * Oculta alerta.
+     */
+    function hideAlert() {
+      elements.alert.className = 'alert d-none';
+      elements.alert.textContent = '';
+    }
+
+    /**
+     * Extrae mensaje de error.
+     *
+     * @param {Error} error Error.
+     * @return {string} Mensaje.
+     */
+    function getErrorMessage(error) {
+      return error && error.message ? error.message : 'No se ha podido cargar administración.';
+    }
+
+    /**
+     * Escapa HTML.
+     *
+     * @param {string} value Valor.
+     * @return {string} Texto escapado.
+     */
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * Escapa atributo.
+     *
+     * @param {string} value Valor.
+     * @return {string} Atributo.
+     */
+    function escapeAttribute(value) {
+      return escapeHtml(value);
+    }
+
+    window.GestionFaltasDocentesAdmin = {
+      load: load
+    };
+  })();
 </script>

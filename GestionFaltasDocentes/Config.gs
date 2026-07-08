@@ -4,11 +4,12 @@
  * Este archivo define constantes compartidas por todos los modulos.
  */
 const APP = Object.freeze({
-  NAME: 'Gestion de Faltas Docentes',
+  NAME: 'Gestión de Faltas Docentes',
   CENTER: 'IES Leonardo de Chabacier',
   LOCATION: 'Calatayud',
   VERSION: '0.4.0-pdf',
-  SPREADSHEET_ID: '1Po8Cf1UQdnNQP8Z1hSnWZTlaPz97HADuK_h_407pd0I'
+  SPREADSHEET_ID: '1Po8Cf1UQdnNQP8Z1hSnWZTlaPz97HADuK_h_407pd0I',
+  ALLOWED_EMAIL_DOMAIN: 'chabacier.es'
 });
 
 const SHEETS = Object.freeze({
@@ -26,7 +27,16 @@ const ROLES = Object.freeze({
 const ESTADOS_SOLICITUD = Object.freeze({
   PENDIENTE: 'PENDIENTE',
   ACEPTADA: 'ACEPTADA',
-  RECHAZADA: 'RECHAZADA'
+  RECHAZADA: 'RECHAZADA',
+  INVALIDA: 'INVALIDA'
+});
+
+const MOTIVOS_ESPECIALES = Object.freeze({
+  LIBRE_DISPOSICION_CONCILIACION: 'Libre disposición por conciliación'
+});
+
+const LIMITES_MOTIVOS = Object.freeze({
+  LIBRE_DISPOSICION_CONCILIACION_DIAS: 4
 });
 
 const CONFIG_KEYS = Object.freeze({
@@ -34,6 +44,8 @@ const CONFIG_KEYS = Object.freeze({
   CARPETA_JUSTIFICANTES: 'CarpetaJustificantes',
   PLANTILLA_DOCS: 'PlantillaDocs',
   CORREO_DIRECCION: 'CorreoDireccion',
+  CORREOS_ADMIN: 'CorreosAdmin',
+  GRUPO_DOCENTES: 'GrupoDocentes',
   CURSO_ESCOLAR: 'CursoEscolar'
 });
 
@@ -44,6 +56,8 @@ const PDF_MARKERS = Object.freeze({
   MOTIVO: '<<MOTIVO>>',
   OBSERVACIONES: '<<OBSERVACIONES>>',
   FECHA: '<<FECHA>>',
+  FECHA_DOCUMENTO: '<<FECHADOCUMENTO>>',
+  DOCUMENTO_ID: '<<DocumentoID>>',
   TABLA: '<<TABLA>>'
 });
 
@@ -61,7 +75,8 @@ const HEADERS = Object.freeze({
     'DocumentoDriveId',
     'PDFDriveId',
     'JustificanteDriveId',
-    'FechaCreacion'
+    'FechaCreacion',
+    'RazonResolucion'
   ],
   MOTIVOS: ['Motivo'],
   CONFIGURACION: ['Valor', 'Inicio']
@@ -72,6 +87,8 @@ const DEFAULT_CONFIG_ROWS = Object.freeze([
   [CONFIG_KEYS.CARPETA_JUSTIFICANTES, ''],
   [CONFIG_KEYS.PLANTILLA_DOCS, ''],
   [CONFIG_KEYS.CORREO_DIRECCION, ''],
+  [CONFIG_KEYS.CORREOS_ADMIN, ''],
+  [CONFIG_KEYS.GRUPO_DOCENTES, 'claustro@chabacier.es'],
   [CONFIG_KEYS.CURSO_ESCOLAR, '']
 ]);
 

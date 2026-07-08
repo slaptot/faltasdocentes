@@ -11,9 +11,21 @@
   </head>
   <body>
     <nav class="navbar navbar-expand-lg app-navbar">
-      <div class="container">
-        <span class="navbar-brand mb-0 h1"><?= appName ?></span>
-        <span class="navbar-text d-none d-md-inline"><?= centerName ?></span>
+      <div class="container gap-3">
+        <span class="navbar-brand mb-0 h1 d-flex align-items-center gap-3">
+          <img class="app-navbar-logo" src="https://chabacier.es/wp-content/uploads/2022/03/Leonardo-Sin-Fondo-1_SM-129x35.png" alt="IES Leonardo de Chabacier">
+          <span><?= appName ?></span>
+        </span>
+        <div class="d-flex align-items-center gap-3 ms-auto">
+          <span class="navbar-text d-none d-md-inline" id="header-user-email"></span>
+          <button class="btn btn-outline-secondary btn-sm" id="theme-toggle-button" type="button" aria-label="Activar modo oscuro" title="Modo oscuro">
+            <i class="bi bi-moon-stars" id="theme-toggle-icon"></i>
+          </button>
+          <button class="btn btn-outline-light btn-sm d-none" id="logout-button" type="button">
+            <i class="bi bi-box-arrow-right"></i>
+            Salir
+          </button>
+        </div>
       </div>
     </nav>
 
@@ -32,8 +44,28 @@
         <div class="d-flex align-items-start gap-3">
           <i class="bi bi-exclamation-triangle app-state-icon"></i>
           <div>
-            <h1 class="h4 mb-2">No esta autorizado para utilizar esta aplicacion.</h1>
+            <h1 class="h4 mb-2">No está autorizado para utilizar esta aplicación.</h1>
             <p class="text-secondary mb-0" id="unauthorized-email"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-shell d-none" id="logged-out-state">
+        <div class="d-flex align-items-start gap-3">
+          <i class="bi bi-box-arrow-right app-state-icon"></i>
+          <div>
+            <h1 class="h4 mb-2">Sesión cerrada en la aplicación.</h1>
+            <p class="text-secondary mb-3">Para cambiar de cuenta, cierre la sesión de Google y vuelva a abrir la Web App.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-primary" id="login-again-button" type="button">
+                <i class="bi bi-arrow-clockwise"></i>
+                Volver a entrar
+              </button>
+              <a class="btn btn-outline-secondary" href="https://accounts.google.com/Logout" target="_top">
+                <i class="bi bi-google"></i>
+                Cerrar sesión de Google
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -43,9 +75,12 @@
           <div>
             <h1 class="h3 mb-1">Panel principal</h1>
             <p class="text-secondary mb-0">
-              <span id="user-name"></span>
-              <span class="d-none" id="user-department-wrapper"> - <span id="user-department"></span></span>
+              La gestión de ausencias envía por email una copia en PDF con los datos de la ausencia, que sirve para imprimir directamente y entregar si es necesario.
             </p>
+            <a class="btn btn-outline-primary btn-sm mt-3" href="https://drive.google.com/uc?export=download&id=19k7dFDt6f6IRIQlzZkdqE7-iWazb6tME" target="_blank" rel="noopener">
+              <i class="bi bi-file-earmark-pdf"></i>
+              Descargar PDF
+            </a>
           </div>
           <span class="badge text-bg-light align-self-start">v<?= version ?></span>
         </div>
@@ -56,7 +91,7 @@
               <div class="card-body">
                 <i class="bi bi-file-earmark-plus app-card-icon"></i>
                 <h2 class="h5 mt-3">Nueva solicitud</h2>
-                <p class="text-secondary">Formulario de declaracion de falta docente.</p>
+                <p class="text-secondary">Formulario de declaración de falta docente.</p>
                 <button class="btn btn-primary" type="button" data-view-target="nueva">Abrir</button>
               </div>
             </article>
@@ -67,7 +102,7 @@
                 <i class="bi bi-clock-history app-card-icon"></i>
                 <h2 class="h5 mt-3">Mis solicitudes</h2>
                 <p class="text-secondary">Historial personal y descarga de PDFs.</p>
-                <button class="btn btn-primary" disabled>Pendiente</button>
+                <button class="btn btn-primary" type="button" data-view-target="historial">Abrir</button>
               </div>
             </article>
           </div>
@@ -75,20 +110,24 @@
             <article class="card app-card h-100">
               <div class="card-body">
                 <i class="bi bi-shield-check app-card-icon"></i>
-                <h2 class="h5 mt-3">Administracion</h2>
-                <p class="text-secondary">Gestion de solicitudes por Direccion.</p>
-                <button class="btn btn-primary" disabled>Pendiente</button>
+                <h2 class="h5 mt-3">Administración</h2>
+                <p class="text-secondary">Gestión de solicitudes por Dirección.</p>
+                <button class="btn btn-primary" type="button" data-view-target="admin">Abrir</button>
               </div>
             </article>
           </div>
         </div>
 
         <?!= include('nueva'); ?>
+        <?!= include('historial'); ?>
+        <?!= include('admin'); ?>
       </section>
     </main>
 
     <?!= include('js/app'); ?>
     <?!= include('js/nueva'); ?>
+    <?!= include('js/historial'); ?>
+    <?!= include('js/admin'); ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

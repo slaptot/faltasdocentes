@@ -26,7 +26,7 @@ function guardarJustificante(filePayload, solicitudId) {
     throw new Error('El justificante debe ser PDF, JPG o PNG.');
   }
 
-  const folder = getConfiguredFolder_(CONFIG_KEYS.CARPETA_JUSTIFICANTES);
+  const folder = getYearFolder_(CONFIG_KEYS.CARPETA_JUSTIFICANTES, solicitudId);
   const extension = getExtensionFromMimeType_(mimeType);
   const safeName = buildSafeFileName_(solicitudId, filePayload.name, extension);
   const bytes = Utilities.base64Decode(filePayload.data);
@@ -37,19 +37,29 @@ function guardarJustificante(filePayload, solicitudId) {
 }
 
 /**
- * Devuelve una URL de descarga para un archivo de Drive.
+ * Devuelve una URL de visualizacion para un archivo de Drive.
  *
  * @param {string} fileId ID de archivo.
- * @return {string} URL de descarga.
+ * @return {string} URL de visualizacion.
  */
 function getDriveDownloadUrl(fileId) {
+  return getDriveViewUrl(fileId);
+}
+
+/**
+ * Devuelve una URL de visualizacion para un archivo de Drive.
+ *
+ * @param {string} fileId ID de archivo.
+ * @return {string} URL de visualizacion.
+ */
+function getDriveViewUrl(fileId) {
   const id = normalizeText(fileId);
 
   if (!id) {
     return '';
   }
 
-  return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(id);
+  return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view?usp=drivesdk';
 }
 
 /**
@@ -67,6 +77,44 @@ function getConfiguredFolder_(configKey) {
   }
 
   return DriveApp.getFolderById(folderId);
+}
+
+/**
+ * Obtiene o crea una subcarpeta anual dentro de una carpeta configurada.
+ *
+ * @param {string} configKey Clave de configuracion de la carpeta base.
+ * @param {string} solicitudId ID de solicitud con prefijo anual.
+ * @return {Folder} Carpeta anual.
+ * @private
+ */
+function getYearFolder_(configKey, solicitudId) {
+  const baseFolder = getConfiguredFolder_(configKey);
+  const year = getYearFromSolicitudId_(solicitudId);
+  const folders = baseFolder.getFoldersByName(year);
+
+  if (folders.hasNext()) {
+    return folders.next();
+  }
+
+  return baseFolder.createFolder(year);
+}
+
+/**
+ * Extrae el año del ID de solicitud.
+ *
+ * @param {string} solicitudId ID de solicitud.
+ * @return {string} Año.
+ * @private
+ */
+function getYearFromSolicitudId_(solicitudId) {
+  const id = normalizeText(solicitudId);
+  const match = id.match(/^(\d{4})-/);
+
+  if (match) {
+    return match[1];
+  }
+
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy');
 }
 
 /**
@@ -111,8 +159,25 @@ function buildSafeFileName_(solicitudId, originalName, extension) {
  * @return {string} ID del archivo PDF.
  */
 function guardarPdfSolicitud(blob, solicitudId) {
-  const folder = getConfiguredFolder_(CONFIG_KEYS.CARPETA_PDF);
+  const folder = getYearFolder_(CONFIG_KEYS.CARPETA_PDF, solicitudId);
   const file = folder.createFile(blob.setName('Solicitud_' + solicitudId + '.pdf'));
 
+  applyPdfSharing_(file);
+
   return file.getId();
+}
+
+/**
+ * Aplica permisos de lectura al PDF generado sin bloquear el tramite si la
+ * politica del dominio no permite compartir por enlace.
+ *
+ * @param {File} file Archivo PDF.
+ * @private
+ */
+function applyPdfSharing_(file) {
+  try {
+    file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (error) {
+    console.warn('No se han podido aplicar permisos de dominio al PDF', error);
+  }
 }
