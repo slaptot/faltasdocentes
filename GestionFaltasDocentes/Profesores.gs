@@ -77,6 +77,55 @@ function upsertProfesor(profesor) {
 }
 
 /**
+ * Guarda el nombre del docente autenticado en la hoja Profesores.
+ *
+ * Se usa para ir construyendo la base de datos interna a partir del nombre que
+ * el propio docente introduce en el formulario. Si el profesor ya existia, se
+ * conservan departamento y rol salvo que se reciban valores nuevos.
+ *
+ * @param {string} nombre Nombre completo indicado por el docente.
+ * @return {Object} Profesor guardado.
+ */
+function guardarNombreDocenteActual(nombre) {
+  const user = getCurrentUser();
+
+  if (!user.authorized) {
+    throw new Error('No está autorizado para utilizar esta aplicación.');
+  }
+
+  return guardarPerfilDocente_(user.email, nombre, user.departamento, user.rol);
+}
+
+/**
+ * Crea o actualiza el perfil docente interno.
+ *
+ * @param {string} email Correo del docente.
+ * @param {string} nombre Nombre completo.
+ * @param {string=} departamento Departamento.
+ * @param {string=} rol Rol.
+ * @return {Object} Profesor guardado.
+ * @private
+ */
+function guardarPerfilDocente_(email, nombre, departamento, rol) {
+  const normalizedEmail = normalizeText(email).toLowerCase();
+  const normalizedNombre = normalizeText(nombre);
+
+  if (!normalizedEmail || !normalizedNombre) {
+    throw new Error('El email y el nombre del docente son obligatorios.');
+  }
+
+  const existente = findProfesorByEmail(normalizedEmail);
+
+  return upsertProfesor({
+    email: normalizedEmail,
+    nombre: normalizedNombre,
+    departamento: normalizeText(departamento) || (existente ? existente.departamento : ''),
+    rol: normalizeText(rol) || (existente ? existente.rol : ROLES.PROFESOR),
+    activo: true
+  });
+}
+
+/**
  * Devuelve la hoja Profesores preparada.
  *
  * @return {Sheet} Hoja Profesores.

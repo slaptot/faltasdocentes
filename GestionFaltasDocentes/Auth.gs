@@ -29,12 +29,14 @@ function getCurrentUser() {
       return buildUnauthorizedUser_(email);
     }
 
+    const profesor = findProfesorByEmail(email);
+
     return {
       authorized: true,
       email: email,
-      nombre: buildNameFromEmail_(email),
-      departamento: '',
-      rol: isAdmin ? ROLES.ADMIN : ROLES.PROFESOR,
+      nombre: profesor && profesor.nombre ? profesor.nombre : buildNameFromEmail_(email),
+      departamento: profesor ? profesor.departamento : '',
+      rol: isAdmin ? ROLES.ADMIN : (profesor ? profesor.rol : ROLES.PROFESOR),
       isAdmin: isAdmin
     };
   } catch (error) {
@@ -88,6 +90,28 @@ function diagnosticarLoginActual() {
     isTeacherGroupMember: isAdmin ? true : isTeacherGroupMember_(activeEmail),
     fallbackName: buildNameFromEmail_(activeEmail),
     currentUser: getCurrentUser()
+  };
+}
+
+/**
+ * Fuerza la autorizacion del permiso de Google Groups.
+ *
+ * Ejecutar manualmente desde el editor de Apps Script con la cuenta
+ * propietaria/desplegadora cuando Google no solicita el permiso al usar la
+ * Web App. La llamada a GroupsApp es intencionada para activar el consentimiento.
+ *
+ * @return {Object} Resultado de la comprobacion del grupo docente.
+ */
+function autorizarPermisoGrupos() {
+  const config = getConfiguracion();
+  const groupEmail = normalizeText(config[CONFIG_KEYS.GRUPO_DOCENTES] || 'claustro@chabacier.es').toLowerCase();
+  const email = getActiveUserEmail_();
+  const group = GroupsApp.getGroupByEmail(groupEmail);
+
+  return {
+    groupEmail: groupEmail,
+    activeUserEmail: email,
+    hasActiveUser: group.hasUser(email)
   };
 }
 

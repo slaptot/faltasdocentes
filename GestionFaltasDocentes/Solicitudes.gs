@@ -23,6 +23,7 @@ function crearSolicitud(payload) {
     }
 
     const data = validateSolicitudPayload_(payload);
+    guardarPerfilDocente_(user.email, data.docente, user.departamento, user.rol);
     const avisoLimite = buildAvisoLibreDisposicion_(user.email, data);
     const id = generarSiguienteSolicitudId();
     const justificanteDriveId = guardarJustificante(data.justificante, id);
@@ -187,6 +188,38 @@ function cambiarEstadoSolicitud(id, estado, razon) {
   }
 
   return mapSolicitudForAdminClient_(solicitud);
+}
+
+/**
+ * Cambia el estado de varias solicitudes desde Administracion.
+ *
+ * Cada solicitud resuelta como aceptada o rechazada notifica por correo al
+ * docente correspondiente.
+ *
+ * @param {string[]} ids IDs de solicitudes.
+ * @param {string} estado Nuevo estado.
+ * @param {string=} razon Razon indicada por Administracion.
+ * @return {Object} Resultado de la operacion.
+ */
+function cambiarEstadoSolicitudes(ids, estado, razon) {
+  const user = getCurrentUser();
+
+  if (!user.authorized || !user.isAdmin) {
+    throw new Error('No tiene permisos de administración.');
+  }
+
+  if (!Array.isArray(ids) || !ids.length) {
+    throw new Error('Debe seleccionar al menos una solicitud.');
+  }
+
+  const solicitudes = ids.map(function(id) {
+    return cambiarEstadoSolicitud(id, estado, razon);
+  });
+
+  return {
+    total: solicitudes.length,
+    solicitudes: solicitudes
+  };
 }
 
 /**

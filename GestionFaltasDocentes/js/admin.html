@@ -6,6 +6,7 @@
     const state = {
       motivosLoaded: false,
       solicitudes: [],
+      selectedIds: new Set(),
       currentPage: 1,
       pageSize: 10,
       pendingResolution: null
@@ -30,6 +31,10 @@
       elements.tableWrapper = document.getElementById('admin-table-wrapper');
       elements.body = document.getElementById('admin-body');
       elements.pageSize = document.getElementById('admin-page-size');
+      elements.selectPage = document.getElementById('admin-select-page');
+      elements.selectionSummary = document.getElementById('admin-selection-summary');
+      elements.bulkAccept = document.getElementById('admin-bulk-accept');
+      elements.bulkReject = document.getElementById('admin-bulk-reject');
       elements.paginationSummary = document.getElementById('admin-pagination-summary');
       elements.paginationPage = document.getElementById('admin-pagination-page');
       elements.pagePrev = document.getElementById('admin-page-prev');
@@ -38,6 +43,7 @@
       elements.resolutionForm = document.getElementById('admin-resolution-form');
       elements.resolutionTitle = document.getElementById('admin-resolution-title');
       elements.resolutionSummary = document.getElementById('admin-resolution-summary');
+      elements.resolutionReasonBlock = document.getElementById('admin-resolution-reason-block');
       elements.resolutionReasonLabel = document.getElementById('admin-resolution-reason-label');
       elements.resolutionReason = document.getElementById('admin-resolution-reason');
       elements.year.value = String(new Date().getFullYear());
@@ -53,6 +59,13 @@
       });
       elements.exportCsv.addEventListener('click', exportCsv);
       elements.pageSize.addEventListener('change', changePageSize);
+      elements.selectPage.addEventListener('change', toggleCurrentPageSelection);
+      elements.bulkAccept.addEventListener('click', function() {
+        openBulkResolutionModal('ACEPTADA');
+      });
+      elements.bulkReject.addEventListener('click', function() {
+        openBulkResolutionModal('RECHAZADA');
+      });
       elements.pagePrev.addEventListener('click', function() {
         goToPage(state.currentPage - 1);
       });
@@ -114,6 +127,7 @@
       hideAlert();
       elements.body.innerHTML = '';
       state.solicitudes = solicitudes || [];
+      state.selectedIds.clear();
       state.currentPage = 1;
       state.pageSize = getPageSize();
 
@@ -148,6 +162,7 @@
       elements.paginationPage.textContent = 'Página ' + currentPage + ' de ' + pageCount;
       elements.pagePrev.disabled = currentPage <= 1;
       elements.pageNext.disabled = currentPage >= pageCount;
+      updateSelectionControls();
     }
 
     /**
@@ -222,6 +237,7 @@
         : '<span class="text-secondary">Sin PDF</span>';
 
       row.innerHTML = [
+        '<td class="text-center"><input class="form-check-input admin-row-select" type="checkbox" value="' + escapeAttribute(solicitud.id) + '" aria-label="Seleccionar solicitud ' + escapeAttribute(solicitud.id) + '"' + (state.selectedIds.has(solicitud.id) ? ' checked' : '') + '></td>',
         '<td class="fw-semibold">' + escapeHtml(solicitud.id) + '</td>',
         '<td>' + escapeHtml(solicitud.fecha) + '</td>',
         '<td class="small">' + formatMultiline(solicitud.horario) + '</td>',
@@ -238,8 +254,69 @@
           openResolutionModal(solicitud, button.dataset.action);
         });
       });
+      row.querySelector('.admin-row-select').addEventListener('change', function(event) {
+        toggleSolicitudSelection(solicitud.id, event.target.checked);
+      });
 
       return row;
+    }
+
+    /**
+     * Marca o desmarca una solicitud.
+     *
+     * @param {string} id ID de solicitud.
+     * @param {boolean} selected Estado de seleccion.
+     */
+    function toggleSolicitudSelection(id, selected) {
+      if (selected) {
+        state.selectedIds.add(id);
+      } else {
+        state.selectedIds.delete(id);
+      }
+
+      updateSelectionControls();
+    }
+
+    /**
+     * Selecciona o deselecciona todas las solicitudes visibles.
+     *
+     * @param {Event} event Evento de cambio.
+     */
+    function toggleCurrentPageSelection(event) {
+      getVisibleSolicitudes().forEach(function(solicitud) {
+        toggleSolicitudSelection(solicitud.id, event.target.checked);
+      });
+      renderCurrentPage();
+    }
+
+    /**
+     * Obtiene las solicitudes visibles en la pagina actual.
+     *
+     * @return {Object[]} Solicitudes visibles.
+     */
+    function getVisibleSolicitudes() {
+      const startIndex = (state.currentPage - 1) * state.pageSize;
+      const endIndex = Math.min(startIndex + state.pageSize, state.solicitudes.length);
+      return state.solicitudes.slice(startIndex, endIndex);
+    }
+
+    /**
+     * Actualiza controles relacionados con seleccion multiple.
+     */
+    function updateSelectionControls() {
+      const selectedCount = state.selectedIds.size;
+      const visibleSolicitudes = getVisibleSolicitudes();
+      const visibleSelectedCount = visibleSolicitudes.filter(function(solicitud) {
+        return state.selectedIds.has(solicitud.id);
+      }).length;
+
+      elements.selectionSummary.textContent = selectedCount === 1
+        ? '1 seleccionada'
+        : selectedCount + ' seleccionadas';
+      elements.bulkAccept.disabled = selectedCount === 0;
+      elements.bulkReject.disabled = selectedCount === 0;
+      elements.selectPage.checked = visibleSolicitudes.length > 0 && visibleSelectedCount === visibleSolicitudes.length;
+      elements.selectPage.indeterminate = visibleSelectedCount > 0 && visibleSelectedCount < visibleSolicitudes.length;
     }
 
     /**
@@ -250,17 +327,64 @@
      */
     function openResolutionModal(solicitud, estado) {
       state.pendingResolution = {
-        id: solicitud.id,
+        ids: [solicitud.id],
         estado: estado
       };
       elements.resolutionTitle.textContent = estado === 'ACEPTADA' ? 'Aceptar solicitud' : 'Rechazar solicitud';
       elements.resolutionSummary.textContent = solicitud.id + ' - ' + solicitud.profesor;
       elements.resolutionReason.value = '';
       elements.resolutionReason.required = estado === 'RECHAZADA';
+      elements.resolutionReasonBlock.classList.toggle('d-none', estado === 'ACEPTADA');
       elements.resolutionReasonLabel.textContent = estado === 'RECHAZADA'
         ? 'Razón del rechazo'
-        : 'Observación interna opcional';
+        : 'Observación interna';
       bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).show();
+      focusResolutionReasonIfNeeded(estado);
+    }
+
+    /**
+     * Abre el modal de resolucion para las solicitudes seleccionadas.
+     *
+     * @param {string} estado Estado.
+     */
+    function openBulkResolutionModal(estado) {
+      const ids = Array.from(state.selectedIds);
+
+      if (!ids.length) {
+        showAlert('info', 'Seleccione al menos una solicitud.');
+        return;
+      }
+
+      state.pendingResolution = {
+        ids: ids,
+        estado: estado
+      };
+      elements.resolutionTitle.textContent = estado === 'ACEPTADA'
+        ? 'Aceptar solicitudes seleccionadas'
+        : 'Rechazar solicitudes seleccionadas';
+      elements.resolutionSummary.textContent = ids.length === 1
+        ? 'Se resolverá 1 solicitud.'
+        : 'Se resolverán ' + ids.length + ' solicitudes.';
+      elements.resolutionReason.value = '';
+      elements.resolutionReason.required = estado === 'RECHAZADA';
+      elements.resolutionReasonBlock.classList.toggle('d-none', estado === 'ACEPTADA');
+      elements.resolutionReasonLabel.textContent = estado === 'RECHAZADA'
+        ? 'Razón del rechazo'
+        : 'Observación interna';
+      bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).show();
+      focusResolutionReasonIfNeeded(estado);
+    }
+
+    /**
+     * Enfoca el campo de razon cuando la resolucion lo necesita.
+     *
+     * @param {string} estado Estado.
+     */
+    function focusResolutionReasonIfNeeded(estado) {
+      if (estado !== 'RECHAZADA') {
+        return;
+      }
+
       elements.resolutionModal.addEventListener('shown.bs.modal', function focusReason() {
         elements.resolutionModal.removeEventListener('shown.bs.modal', focusReason);
         elements.resolutionReason.focus();
@@ -286,29 +410,30 @@
         return;
       }
 
-      cambiarEstado(state.pendingResolution.id, state.pendingResolution.estado, razon);
+      cambiarEstado(state.pendingResolution.ids, state.pendingResolution.estado, razon);
     }
 
     /**
-     * Cambia estado de una solicitud.
+     * Cambia estado de una o varias solicitudes.
      *
-     * @param {string} id ID.
+     * @param {string[]} ids IDs.
      * @param {string} estado Estado.
      * @param {string} razon Razon de resolucion.
      */
-    function cambiarEstado(id, estado, razon) {
+    function cambiarEstado(ids, estado, razon) {
       bootstrap.Modal.getOrCreateInstance(elements.resolutionModal).hide();
       showLoading();
       google.script.run
         .withSuccessHandler(function() {
           state.pendingResolution = null;
+          state.selectedIds.clear();
           load();
         })
         .withFailureHandler(function(error) {
           hideLoading();
           showAlert('danger', getErrorMessage(error));
         })
-        .cambiarEstadoSolicitud(id, estado, razon);
+        .cambiarEstadoSolicitudes(ids, estado, razon);
     }
 
     /**

@@ -9,7 +9,8 @@
       profesor: {
         nombre: '',
         email: ''
-      }
+      },
+      saveNombreTimeoutId: null
     };
     const elements = {};
 
@@ -38,6 +39,8 @@
 
       elements.addAusenciaRow.addEventListener('click', addAusenciaRow);
       elements.motivoSearch.addEventListener('input', renderMotivos);
+      elements.profesor.addEventListener('input', scheduleNombreDocenteSave);
+      elements.profesor.addEventListener('change', saveNombreDocente);
       elements.form.addEventListener('submit', submitSolicitud);
     }
 
@@ -185,6 +188,7 @@
     function guardarSolicitud(payload) {
       google.script.run
         .withSuccessHandler(function(result) {
+          state.profesor.nombre = payload.docente;
           showAlert('success', 'Solicitud ' + result.id + ' guardada correctamente. PDF generado y correos enviados.');
           resetFormForNewRequest({keepAlert: true});
           setSubmitting(false);
@@ -194,6 +198,36 @@
           setSubmitting(false);
         })
         .crearSolicitud(payload);
+    }
+
+    /**
+     * Programa el guardado del nombre del docente con una pequena espera.
+     */
+    function scheduleNombreDocenteSave() {
+      window.clearTimeout(state.saveNombreTimeoutId);
+      state.saveNombreTimeoutId = window.setTimeout(saveNombreDocente, 900);
+    }
+
+    /**
+     * Guarda el nombre del docente autenticado en la hoja Profesores.
+     */
+    function saveNombreDocente() {
+      const docente = normalizeClientText(elements.profesor.value);
+
+      window.clearTimeout(state.saveNombreTimeoutId);
+
+      if (!docente || docente === state.profesor.nombre) {
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(profesor) {
+          state.profesor.nombre = profesor && profesor.nombre ? profesor.nombre : docente;
+        })
+        .withFailureHandler(function(error) {
+          console.warn('No se ha podido guardar el nombre del docente', error);
+        })
+        .guardarNombreDocenteActual(docente);
     }
 
     /**
